@@ -1,0 +1,1 @@
+bindgen --allowlist-function "Wintun.*" --allowlist-type "WINTUN_.*" --allowlist-var "WINTUN_.*" --dynamic-loading wintun --dynamic-link-require-all wintun/wintun_functions.h > src/wintun_raw.rs
