@@ -13,9 +13,9 @@ use windows::{
     Win32::System::WindowsProgramming::INFINITE
 };
 
-use crate::driver::WinTunDriver;
-use crate::handle::UnsafeHandle;
-use crate::interface::WinTunInterface;
+use crate::wintun::driver::WinTunDriver;
+use crate::wintun::handle::UnsafeHandle;
+use crate::wintun::interface::WinTunInterface;
 use wintun_sys::{DWORD, WINTUN_SESSION_HANDLE};
 
 enum WorkerCommand {

@@ -1,7 +1,7 @@
-use crate::driver::WinTunDriver;
-use crate::error::Error;
-use crate::handle::UnsafeHandle;
-use crate::stream::WinTunStream;
+use crate::wintun::driver::WinTunDriver;
+use crate::wintun::error::Error;
+use crate::wintun::handle::UnsafeHandle;
+use crate::wintun::stream::WinTunStream;
 use get_last_error::Win32Error;
 use log::error;
 use std::ptr;

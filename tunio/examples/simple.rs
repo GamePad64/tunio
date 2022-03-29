@@ -9,9 +9,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let driver = Arc::new(tunio::driver::WinTunDriver::new());
+    let driver = Arc::new(tunio::wintun::driver::WinTunDriver::new());
     let interface =
-        Arc::new(tunio::interface::WinTunInterface::new(driver, "name", "type").unwrap());
+        Arc::new(tunio::wintun::interface::WinTunInterface::new(driver, "name", "type").unwrap());
     // let interface = WinTunInterface::new(driver.wintun, "name", "type");
     let mut stream = interface.create_stream().unwrap();
 

@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.17.0", features = ["rt"] }
 log = "0.4.16"
+
+[target.'cfg(windows)'.dependencies]
 get-last-error = "0.1.0" # replace with Error::last_os_error
 widestring = "0.5.1"
 uuid = { version = "0.8.2", features = ["v4"]}
@@ -15,6 +17,9 @@ bytes = "1.1.0"
 crossbeam-channel = "0.5.4"
 wintun-sys = { path = "../wintun-sys" }
 windows = { version = "0.34.0", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_System_WindowsProgramming"] }
+
+[features]
+wintun = []
 
 [build-dependencies]
 bindgen = { version = "0.59.2", features = ["static"], default-features = false }

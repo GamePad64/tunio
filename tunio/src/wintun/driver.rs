@@ -1,9 +1,9 @@
-use crate::logger::wintun_logger;
+use crate::wintun::logger::wintun_logger;
 use std::sync::Arc;
 use wintun_sys;
 
 pub struct WinTunDriver {
-    pub(crate) wintun: Arc<wintun_sys::wintun>,
+    pub wintun: Arc<wintun_sys::wintun>,
 }
 
 impl WinTunDriver {
