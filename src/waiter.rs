@@ -1,3 +1,4 @@
+use crate::handle::UnsafeHandle;
 use get_last_error::Win32Error;
 use log::{trace, warn};
 use std::sync::mpsc as stdmpsc;
@@ -9,12 +10,6 @@ use winapi::shared::ntdef::HANDLE;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::synchapi::{CreateEventA, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_ABANDONED_0, WAIT_FAILED, WAIT_OBJECT_0};
-
-pub(crate) struct UnsafeHandle<T>(pub T);
-
-unsafe impl<T> Send for UnsafeHandle<T> {}
-
-unsafe impl<T> Sync for UnsafeHandle<T> {}
 
 enum Command {
     AddHandle {
@@ -98,19 +93,18 @@ impl Waiter {
             trace!("WFMO result: {result_code:?}");
 
             if result_code == WAIT_OBJECT_0 {
-                loop {
-                    match cmd_channel_rx.try_recv() {
-                        Ok(Command::AddHandle {
+                while let Ok(cmd) = cmd_channel_rx.try_recv() {
+                    match cmd {
+                        Command::AddHandle {
                             handle: UnsafeHandle(handle),
                             channel,
-                        }) => {
+                        } => {
                             state.add_handle(handle, channel);
                         }
-                        Ok(Command::Shutdown { completion_channel }) => {
+                        Command::Shutdown { completion_channel } => {
                             let _ = unsafe { CloseHandle(state.handles[0]) };
                             let _ = completion_channel.send(());
                         }
-                        Err(_) => break,
                     }
                 }
             } else if result_code == WAIT_ABANDONED_0 {

@@ -19,6 +19,9 @@ etherparse = "0.10.1"
 widestring = "0.5.1"
 rand = "0.8.5"
 libloading = "0.7.3"
+uuid = { version = "0.8.2", features = ["v4"]}
+bytes = "1.1.0"
+crossbeam-channel = "0.5.4"
 
 [build-dependencies]
 bindgen = { version = "0.59.2", features = ["static"], default-features = false }

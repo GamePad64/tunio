@@ -80,6 +80,9 @@ where
         }
     }
 }
+pub const WINTUN_MIN_RING_CAPACITY: u32 = 131072;
+pub const WINTUN_MAX_RING_CAPACITY: u32 = 67108864;
+pub const WINTUN_MAX_IP_PACKET_SIZE: u32 = 65535;
 pub type wchar_t = ::std::os::raw::c_ushort;
 pub type DWORD = ::std::os::raw::c_ulong;
 pub type BOOL = ::std::os::raw::c_int;
