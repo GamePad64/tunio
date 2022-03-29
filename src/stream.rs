@@ -3,15 +3,16 @@ use get_last_error::Win32Error;
 use log::warn;
 use std::cmp::min;
 use std::pin::Pin;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
 use std::thread;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use winapi::shared::winerror::ERROR_NO_MORE_ITEMS;
-use winapi::um::handleapi::CloseHandle;
-
-use winapi::um::synchapi::{CreateEventA, SetEvent, WaitForMultipleObjects};
-use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
+use winapi::{
+    shared::winerror::ERROR_NO_MORE_ITEMS,
+    um::handleapi::CloseHandle,
+    um::synchapi::{CreateEventA, SetEvent, WaitForMultipleObjects},
+    um::winbase::{INFINITE, WAIT_OBJECT_0},
+};
 
 use crate::driver::WinTunDriver;
 use crate::handle::UnsafeHandle;
@@ -29,15 +30,15 @@ pub struct WinTunStream {
     interface: Arc<WinTunInterface>,
 
     cmd_event: UnsafeHandle<HANDLE>,
-    cmd_channel_tx: mpsc::Sender<WorkerCommand>,
+    cmd_channel_tx: crossbeam_channel::Sender<WorkerCommand>,
 
     packet_reader_thread: Option<thread::JoinHandle<()>>,
-    packet_rx: mpsc::Receiver<Bytes>,
+    packet_rx: crossbeam_channel::Receiver<Bytes>,
 
-    wakers_tx: mpsc::Sender<Waker>,
+    wakers_tx: crossbeam_channel::Sender<Waker>,
 
-    write_status_tx: mpsc::SyncSender<std::io::Result<usize>>,
-    write_status_rx: mpsc::Receiver<std::io::Result<usize>>,
+    write_status_tx: crossbeam_channel::Sender<std::io::Result<usize>>,
+    write_status_rx: crossbeam_channel::Receiver<std::io::Result<usize>>,
     packet_writer_thread: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -50,14 +51,14 @@ impl WinTunStream {
         interface: Arc<WinTunInterface>,
     ) -> Self {
         let cmd_event = unsafe { CreateEventA(std::ptr::null_mut(), 0, 0, std::ptr::null_mut()) };
-        let (cmd_channel_tx, cmd_channel_rx) = mpsc::channel();
+        let (cmd_channel_tx, cmd_channel_rx) = crossbeam_channel::unbounded();
 
         let inner_handle = UnsafeHandle(handle.0);
         let inner_driver = driver.clone();
         let inner_cmd_event = UnsafeHandle(cmd_event);
 
-        let (packet_tx, packet_rx) = mpsc::sync_channel(16);
-        let (wakers_tx, wakers_rx) = mpsc::channel();
+        let (packet_tx, packet_rx) = crossbeam_channel::bounded(16);
+        let (wakers_tx, wakers_rx) = crossbeam_channel::unbounded();
 
         let packet_reader_thread = Some(thread::spawn(|| {
             Self::worker_thread(
@@ -70,7 +71,7 @@ impl WinTunStream {
             )
         }));
 
-        let (write_status_tx, write_status_rx) = mpsc::sync_channel(1);
+        let (write_status_tx, write_status_rx) = crossbeam_channel::bounded(1);
 
         WinTunStream {
             handle,
@@ -91,9 +92,9 @@ impl WinTunStream {
         driver: Arc<WinTunDriver>,
         handle: UnsafeHandle<WINTUN_SESSION_HANDLE>,
         cmd_event: UnsafeHandle<HANDLE>,
-        packet_tx: mpsc::SyncSender<Bytes>,
-        cmd_channel_rx: mpsc::Receiver<WorkerCommand>,
-        wakers_rx: mpsc::Receiver<Waker>,
+        packet_tx: crossbeam_channel::Sender<Bytes>,
+        cmd_channel_rx: crossbeam_channel::Receiver<WorkerCommand>,
+        wakers_rx: crossbeam_channel::Receiver<Waker>,
     ) {
         let read_event = unsafe { driver.wintun.WintunGetReadWaitEvent(handle.0) };
         let mut buffer = BytesMut::new();
