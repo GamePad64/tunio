@@ -28,6 +28,7 @@ pub struct WinTunStream {
     #[allow(dead_code)]
     interface: Arc<WinTunInterface>,
 
+    // Reader
     cmd_event: HANDLE,
     cmd_channel_tx: crossbeam_channel::Sender<WorkerCommand>,
 
@@ -36,6 +37,7 @@ pub struct WinTunStream {
 
     wakers_tx: crossbeam_channel::Sender<Waker>,
 
+    // Writer
     write_status_tx: crossbeam_channel::Sender<std::io::Result<usize>>,
     write_status_rx: crossbeam_channel::Receiver<std::io::Result<usize>>,
     packet_writer_thread: Option<tokio::task::JoinHandle<()>>,

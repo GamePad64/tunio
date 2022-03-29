@@ -5,14 +5,19 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tunio::{DefaultDriver, DefaultInterface, Driver, DriverBuilder, Interface, InterfaceBuilder};
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let driver = Arc::new(tunio::wintun::driver::WinTunDriver::new());
-    let interface =
-        Arc::new(tunio::wintun::interface::WinTunInterface::new(driver, "name", "type").unwrap());
-    // let interface = WinTunInterface::new(driver.wintun, "name", "type");
+    let driver = DefaultDriver::new(DriverBuilder::default().into()).unwrap();
+
+    let params = InterfaceBuilder::new()
+        .name("name")
+        .description("description");
+
+    let interface = DefaultInterface::new(driver, params.into()).unwrap();
+
     let mut stream = interface.create_stream().unwrap();
 
     for _ in 1..100 {
