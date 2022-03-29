@@ -7,17 +7,16 @@ use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
 use std::thread;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use winapi::{
-    shared::winerror::ERROR_NO_MORE_ITEMS,
-    um::handleapi::CloseHandle,
-    um::synchapi::{CreateEventA, SetEvent, WaitForMultipleObjects},
-    um::winbase::{INFINITE, WAIT_OBJECT_0},
+use windows::{
+    Win32::Foundation::{CloseHandle, ERROR_NO_MORE_ITEMS, HANDLE},
+    Win32::System::Threading::{CreateEventA, SetEvent, WAIT_OBJECT_0, WaitForMultipleObjects},
+    Win32::System::WindowsProgramming::INFINITE
 };
 
 use crate::driver::WinTunDriver;
 use crate::handle::UnsafeHandle;
 use crate::interface::WinTunInterface;
-use wintun_sys::{DWORD, HANDLE, WINTUN_SESSION_HANDLE};
+use wintun_sys::{DWORD, WINTUN_SESSION_HANDLE};
 
 enum WorkerCommand {
     Shutdown,
@@ -29,7 +28,7 @@ pub struct WinTunStream {
     #[allow(dead_code)]
     interface: Arc<WinTunInterface>,
 
-    cmd_event: UnsafeHandle<HANDLE>,
+    cmd_event: HANDLE,
     cmd_channel_tx: crossbeam_channel::Sender<WorkerCommand>,
 
     packet_reader_thread: Option<thread::JoinHandle<()>>,
@@ -42,7 +41,7 @@ pub struct WinTunStream {
     packet_writer_thread: Option<tokio::task::JoinHandle<()>>,
 }
 
-const WAIT_OBJECT_1: DWORD = WAIT_OBJECT_0 + 1;
+const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
 
 impl WinTunStream {
     pub fn new(
@@ -50,17 +49,17 @@ impl WinTunStream {
         driver: Arc<WinTunDriver>,
         interface: Arc<WinTunInterface>,
     ) -> Self {
-        let cmd_event = unsafe { CreateEventA(std::ptr::null_mut(), 0, 0, std::ptr::null_mut()) };
+        let cmd_event = unsafe { CreateEventA(std::ptr::null(), false, false, None) };
         let (cmd_channel_tx, cmd_channel_rx) = crossbeam_channel::unbounded();
 
         let inner_handle = UnsafeHandle(handle.0);
         let inner_driver = driver.clone();
-        let inner_cmd_event = UnsafeHandle(cmd_event);
+        let inner_cmd_event = cmd_event.clone();
 
         let (packet_tx, packet_rx) = crossbeam_channel::bounded(16);
         let (wakers_tx, wakers_rx) = crossbeam_channel::unbounded();
 
-        let packet_reader_thread = Some(thread::spawn(|| {
+        let packet_reader_thread = Some(thread::spawn(move || {
             Self::worker_thread(
                 inner_driver,
                 inner_handle,
@@ -77,7 +76,7 @@ impl WinTunStream {
             handle,
             driver,
             interface,
-            cmd_event: UnsafeHandle(cmd_event),
+            cmd_event,
             cmd_channel_tx,
             packet_rx,
             packet_reader_thread,
@@ -91,12 +90,12 @@ impl WinTunStream {
     fn worker_thread(
         driver: Arc<WinTunDriver>,
         handle: UnsafeHandle<WINTUN_SESSION_HANDLE>,
-        cmd_event: UnsafeHandle<HANDLE>,
+        cmd_event: HANDLE,
         packet_tx: crossbeam_channel::Sender<Bytes>,
         cmd_channel_rx: crossbeam_channel::Receiver<WorkerCommand>,
         wakers_rx: crossbeam_channel::Receiver<Waker>,
     ) {
-        let read_event = unsafe { driver.wintun.WintunGetReadWaitEvent(handle.0) };
+        let read_event = HANDLE(unsafe { driver.wintun.WintunGetReadWaitEvent(handle.0) as isize });
         let mut buffer = BytesMut::new();
 
         let mut shutdown = false;
@@ -123,10 +122,9 @@ impl WinTunStream {
                 }
             } else {
                 let err = Win32Error::get_last_error();
-                if err.code() == ERROR_NO_MORE_ITEMS {
-                    let event_handles = [cmd_event.0, read_event];
+                if err.code() == ERROR_NO_MORE_ITEMS.0 {
                     let result =
-                        unsafe { WaitForMultipleObjects(2, event_handles.as_ptr(), 0, INFINITE) };
+                        unsafe { WaitForMultipleObjects(&[cmd_event, read_event], false, INFINITE) };
                     match result {
                         // Command
                         WAIT_OBJECT_0 => {
@@ -150,13 +148,13 @@ impl WinTunStream {
             }
         }
         // After loop -- deinitialize
-        let _ = unsafe { CloseHandle(cmd_event.0) };
+        let _ = unsafe { CloseHandle(cmd_event) };
     }
 
     fn shutdown_worker(&mut self) {
         let _ = self.cmd_channel_tx.send(WorkerCommand::Shutdown);
         unsafe {
-            SetEvent(self.cmd_event.0);
+            SetEvent(self.cmd_event);
         }
         let _ = self.packet_reader_thread.take().unwrap().join();
     }
