@@ -7,7 +7,7 @@ pub struct WinTunDriver {
 }
 
 impl WinTunDriver {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let wintun = Arc::new(unsafe { wintun_raw::wintun::new("wintun").unwrap() });
         unsafe {
             wintun.WintunSetLogger(Some(wintun_logger));

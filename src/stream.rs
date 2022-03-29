@@ -16,8 +16,8 @@ use winapi::{
 
 use crate::driver::WinTunDriver;
 use crate::handle::UnsafeHandle;
+use crate::interface::WinTunInterface;
 use crate::wintun_raw::{DWORD, HANDLE, WINTUN_SESSION_HANDLE};
-use crate::WinTunInterface;
 
 enum WorkerCommand {
     Shutdown,

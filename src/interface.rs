@@ -37,7 +37,7 @@ fn encode_name(string: &str) -> Result<U16CString, Error> {
 }
 
 impl WinTunInterface {
-    pub(crate) fn new(driver: Arc<WinTunDriver>, name: &str, r#type: &str) -> Result<Self, Error> {
+    pub fn new(driver: Arc<WinTunDriver>, name: &str, r#type: &str) -> Result<Self, Error> {
         let [name_u16, type_u16] = [name, r#type].map(encode_name);
         let (name_u16, type_u16) = (name_u16?, type_u16?);
 
@@ -63,7 +63,7 @@ impl WinTunInterface {
         })
     }
 
-    pub(crate) fn create_stream(self: &Arc<Self>) -> Result<WinTunStream, Error> {
+    pub fn create_stream(self: &Arc<Self>) -> Result<WinTunStream, Error> {
         let capacity = wintun_raw::WINTUN_MIN_RING_CAPACITY * 16;
         // let range = MIN_RING_CAPACITY..=MAX_RING_CAPACITY;
         // if !range.contains(&capacity) {}

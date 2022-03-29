@@ -1,7 +1,3 @@
-extern crate core;
-
-use crate::interface::WinTunInterface;
-use driver::WinTunDriver;
 use etherparse::PacketBuilder;
 use log::debug;
 use std::io::{Read, Write};
@@ -10,21 +6,12 @@ use std::thread::sleep;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-mod handle;
-mod interface;
-
-mod driver;
-mod error;
-mod logger;
-mod stream;
-#[allow(warnings)]
-mod wintun_raw;
-
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let driver = Arc::new(WinTunDriver::new());
-    let interface = Arc::new(WinTunInterface::new(driver, "name", "type").unwrap());
+    let driver = Arc::new(tunder::driver::WinTunDriver::new());
+    let interface =
+        Arc::new(tunder::interface::WinTunInterface::new(driver, "name", "type").unwrap());
     // let interface = WinTunInterface::new(driver.wintun, "name", "type");
     let mut stream = interface.create_stream().unwrap();
 
