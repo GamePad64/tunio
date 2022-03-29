@@ -6,7 +6,7 @@ pub struct WinTunDriverParams {
 
 impl<'a> From<DriverBuilder<'a>> for WinTunDriverParams {
     fn from(builder: DriverBuilder) -> Self {
-        WinTunDriverParams {
+        Self {
             library_name: builder.wintun_library_name.map(str::to_string),
         }
     }
@@ -19,7 +19,7 @@ pub struct WinTunInterfaceParams {
 
 impl<'a> From<InterfaceBuilder<'a>> for WinTunInterfaceParams {
     fn from(builder: InterfaceBuilder) -> Self {
-        WinTunInterfaceParams {
+        Self {
             name: builder.name.to_string(),
             description: builder.description.to_string(),
         }

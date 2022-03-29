@@ -1,4 +1,4 @@
-use crate::traits::Driver;
+use crate::traits::DriverT;
 use crate::wintun::logger::wintun_logger;
 use crate::wintun::params::WinTunDriverParams;
 use crate::Error;
@@ -9,7 +9,7 @@ pub struct WinTunDriver {
     pub wintun: Arc<wintun_sys::wintun>,
 }
 
-impl Driver for WinTunDriver {
+impl DriverT for WinTunDriver {
     type DriverParamsT = WinTunDriverParams;
 
     fn new(params: Self::DriverParamsT) -> Result<Arc<Self>, Error> {

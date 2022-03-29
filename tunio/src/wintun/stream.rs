@@ -9,8 +9,8 @@ use std::thread;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use windows::{
     Win32::Foundation::{CloseHandle, ERROR_NO_MORE_ITEMS, HANDLE},
-    Win32::System::Threading::{CreateEventA, SetEvent, WAIT_OBJECT_0, WaitForMultipleObjects},
-    Win32::System::WindowsProgramming::INFINITE
+    Win32::System::Threading::{CreateEventA, SetEvent, WaitForMultipleObjects, WAIT_OBJECT_0},
+    Win32::System::WindowsProgramming::INFINITE,
 };
 
 use crate::wintun::driver::WinTunDriver;
@@ -125,8 +125,9 @@ impl WinTunStream {
             } else {
                 let err = Win32Error::get_last_error();
                 if err.code() == ERROR_NO_MORE_ITEMS.0 {
-                    let result =
-                        unsafe { WaitForMultipleObjects(&[cmd_event, read_event], false, INFINITE) };
+                    let result = unsafe {
+                        WaitForMultipleObjects(&[cmd_event, read_event], false, INFINITE)
+                    };
                     match result {
                         // Command
                         WAIT_OBJECT_0 => {

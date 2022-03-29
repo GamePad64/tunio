@@ -1,4 +1,4 @@
-use crate::traits::Interface;
+use crate::traits::InterfaceT;
 use crate::wintun::driver::WinTunDriver;
 use crate::wintun::handle::UnsafeHandle;
 use crate::wintun::params::WinTunInterfaceParams;
@@ -19,7 +19,7 @@ pub struct WinTunInterface {
     handle: UnsafeHandle<WINTUN_ADAPTER_HANDLE>,
 }
 
-impl Interface for WinTunInterface {
+impl InterfaceT for WinTunInterface {
     type DriverT = WinTunDriver;
     type InterfaceParamsT = WinTunInterfaceParams;
 
