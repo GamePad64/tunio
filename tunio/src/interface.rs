@@ -2,14 +2,14 @@ use crate::driver::WinTunDriver;
 use crate::error::Error;
 use crate::handle::UnsafeHandle;
 use crate::stream::WinTunStream;
-use crate::wintun_raw;
-use crate::wintun_raw::{GUID, WINTUN_ADAPTER_HANDLE};
 use get_last_error::Win32Error;
 use log::error;
 use std::ptr;
 use std::sync::Arc;
 use uuid::Uuid;
 use widestring::U16CString;
+use wintun_sys;
+use wintun_sys::{GUID, WINTUN_ADAPTER_HANDLE, WINTUN_MIN_RING_CAPACITY};
 
 pub struct WinTunInterface {
     driver: Arc<WinTunDriver>,
@@ -64,7 +64,7 @@ impl WinTunInterface {
     }
 
     pub fn create_stream(self: &Arc<Self>) -> Result<WinTunStream, Error> {
-        let capacity = wintun_raw::WINTUN_MIN_RING_CAPACITY * 16;
+        let capacity = WINTUN_MIN_RING_CAPACITY * 16;
         // let range = MIN_RING_CAPACITY..=MAX_RING_CAPACITY;
         // if !range.contains(&capacity) {}
 
