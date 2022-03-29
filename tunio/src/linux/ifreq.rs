@@ -12,8 +12,22 @@ nix::ioctl_write_int!(tunsetpersist, b'T', 203);
 nix::ioctl_write_int!(tunsetowner, b'T', 204);
 nix::ioctl_write_int!(tunsetgroup, b'T', 206);
 
+nix::ioctl_write_ptr_bad!(siocsifmtu, libc::SIOCSIFMTU, ifreq);
+nix::ioctl_write_ptr_bad!(siocsifflags, libc::SIOCSIFFLAGS, ifreq);
+nix::ioctl_write_ptr_bad!(siocsifaddr, libc::SIOCSIFADDR, ifreq);
+nix::ioctl_write_ptr_bad!(siocsifdstaddr, libc::SIOCSIFDSTADDR, ifreq);
+nix::ioctl_write_ptr_bad!(siocsifbrdaddr, libc::SIOCSIFBRDADDR, ifreq);
+nix::ioctl_write_ptr_bad!(siocsifnetmask, libc::SIOCSIFNETMASK, ifreq);
+
+nix::ioctl_read_bad!(siocgifmtu, libc::SIOCGIFMTU, ifreq);
+nix::ioctl_read_bad!(siocgifflags, libc::SIOCGIFFLAGS, ifreq);
+nix::ioctl_read_bad!(siocgifaddr, libc::SIOCGIFADDR, ifreq);
+nix::ioctl_read_bad!(siocgifdstaddr, libc::SIOCGIFDSTADDR, ifreq);
+nix::ioctl_read_bad!(siocgifbrdaddr, libc::SIOCGIFBRDADDR, ifreq);
+nix::ioctl_read_bad!(siocgifnetmask, libc::SIOCGIFNETMASK, ifreq);
+
 const IFNAMSIZ: u32 = 16;
-type IfName = [libc::c_char; IFNAMSIZ as _]; // Null-terminated
+pub(crate) type IfName = [libc::c_char; IFNAMSIZ as _]; // Null-terminated
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -67,19 +81,22 @@ bitflags! {
 }
 
 impl ifreq {
+    fn make_ifname(name: &str) -> IfName {
+        let mut ifname: IfName = [0; IFNAMSIZ as _];
+        ifname
+            .iter_mut()
+            .zip(name.as_bytes().iter().take((IFNAMSIZ - 1) as _))
+            .for_each(|(x, z)| {
+                *x = *z as _;
+            });
+        ifname
+    }
+
     pub fn new(name: &str) -> Self {
         let mut req: ifreq = unsafe { mem::zeroed() };
 
         if !name.is_empty() {
-            let mut ifname: IfName = [0; IFNAMSIZ as _];
-            ifname
-                .iter_mut()
-                .zip(name.as_bytes().iter().take((IFNAMSIZ - 1) as _))
-                .for_each(|(x, z)| {
-                    *x = *z as _;
-                });
-
-            req.ifr_ifrn = ifname;
+            req.ifr_ifrn = Self::make_ifname(name);
         }
         req
     }

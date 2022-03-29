@@ -30,4 +30,6 @@ pub trait InterfaceT {
             )),
         }
     }
+
+    fn open(&mut self) -> Result<(), crate::Error>;
 }
