@@ -1,35 +1,35 @@
-use std::io;
-use std::io::ErrorKind;
-use std::sync::Arc;
+use crate::config::IfaceConfig;
+use crate::Error;
+use std::io::{Read, Write};
 
-pub trait DriverT {
-    type DriverParamsT;
+pub trait PlatformIfaceConfigT: Default {}
 
-    fn new(params: Self::DriverParamsT) -> Result<Arc<Self>, crate::Error>;
-}
+pub trait DriverT: Sized {
+    type PlatformInterface: InterfaceT;
+    type PlatformInterfaceConfig: PlatformIfaceConfigT;
 
-pub trait InterfaceT {
-    type DriverT: DriverT;
-    type InterfaceParamsT;
-
-    fn new(
-        driver: Arc<Self::DriverT>,
-        params: Self::InterfaceParamsT,
-    ) -> Result<Self, crate::Error>
+    fn new() -> Result<Self, crate::Error>
     where
         Self: Sized;
 
-    fn is_ready(&self) -> bool;
+    fn new_interface(
+        &mut self,
+        config: IfaceConfig<Self>,
+    ) -> Result<Self::PlatformInterface, Error>;
 
-    fn check_ready(&self) -> io::Result<()> {
-        match self.is_ready() {
-            true => Ok(()),
-            false => Err(io::Error::new(
-                ErrorKind::ConnectionRefused,
-                "Tun interface is down",
-            )),
-        }
+    fn new_interface_up(
+        &mut self,
+        config: IfaceConfig<Self>,
+    ) -> Result<Self::PlatformInterface, Error> {
+        let mut interface = self.new_interface(config)?;
+        interface.up()?;
+        Ok(interface)
     }
-
-    fn open(&mut self) -> Result<(), crate::Error>;
 }
+
+pub trait InterfaceT: Sized {
+    fn up(&mut self) -> Result<(), Error>;
+    fn down(&mut self) -> Result<(), Error>;
+}
+
+pub trait QueueT: Read + Write {}

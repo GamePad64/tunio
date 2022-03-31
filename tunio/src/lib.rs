@@ -1,21 +1,16 @@
-pub mod builder;
-pub mod error;
-#[cfg(target_os = "linux")]
-mod linux;
+pub mod config;
+pub mod platform;
 pub mod traits;
-#[cfg(target_os = "windows")]
-pub mod wintun;
 
-pub use builder::*;
-pub use error::*;
-pub use traits::*;
+mod error;
+pub use error::Error;
 
 #[cfg(target_os = "windows")]
-pub type DefaultDriver = wintun::driver::WinTunDriver;
+pub type DefaultDriver = platform::wintun::WinTunDriver;
 #[cfg(target_os = "windows")]
-pub type DefaultInterface = wintun::interface::WinTunInterface;
+pub type DefaultInterface = platform::wintun::WinTunInterface;
 
 #[cfg(target_os = "linux")]
-pub type DefaultDriver = linux::LinuxDriver;
+pub type DefaultDriver = platform::linux::LinuxDriver;
 #[cfg(target_os = "linux")]
-pub type DefaultInterface = linux::interface::LinuxInterface;
+pub type DefaultInterface = platform::linux::interface::LinuxInterface;

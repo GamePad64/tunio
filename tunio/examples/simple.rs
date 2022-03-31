@@ -5,22 +5,21 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tunio::{
-    DefaultDriver, DefaultInterface, DriverBuilder, DriverT, InterfaceBuilder, InterfaceT,
-};
+use tunio::config::IfaceConfig;
+use tunio::platform::wintun::WinTunPlatformIfaceConfig;
+use tunio::traits::DriverT;
+use tunio::{DefaultDriver, DefaultInterface};
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let driver = DefaultDriver::new(DriverBuilder::default().into()).unwrap();
+    let mut driver = DefaultDriver::new().unwrap();
 
-    let params = InterfaceBuilder::new()
-        .name("name")
-        .description("description");
+    let interface_config = IfaceConfig::default().set_name("name".into()).set_platform(
+        |config: WinTunPlatformIfaceConfig| config.set_description("description".into()),
+    );
 
-    let mut interface = DefaultInterface::new(driver, params.into()).unwrap();
-
-    interface.open().unwrap();
+    let interface = driver.new_interface_up(interface_config);
 
     for _ in 1..100 {
         let builder = PacketBuilder::ipv6(
@@ -33,15 +32,15 @@ async fn main() {
         let mut packet = Vec::with_capacity(builder.size(0));
         builder.write(&mut packet, &[]).unwrap();
 
-        interface.write(&*packet).await;
+        // interface.write(&*packet).await;
 
         sleep(Duration::from_secs(1));
     }
 
     let mut buf = vec![0u8; 4096];
-    while let Ok(n) = interface.read(buf.as_mut_slice()).await {
-        println!("{buf:x?}");
-    }
+    // while let Ok(n) = interface.read(buf.as_mut_slice()).await {
+    //     println!("{buf:x?}");
+    // }
 
     tokio::signal::ctrl_c().await;
 }

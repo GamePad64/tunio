@@ -6,6 +6,7 @@ pub enum Error {
     InterfaceNameUnicodeError,
     InterfaceNameTooLong(usize),
     LibraryNotLoaded { reason: String },
+    InterfaceStateInvalid,
 }
 
 impl From<io::Error> for Error {
