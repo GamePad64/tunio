@@ -36,7 +36,7 @@ extern "C" {
 /**
  * A handle representing Wintun adapter
  */
-typedef struct _WINTUN_ADAPTER* WINTUN_ADAPTER_HANDLE;
+typedef struct _WINTUN_ADAPTER *WINTUN_ADAPTER_HANDLE;
 
 /**
  * Creates a new Wintun adapter.
@@ -57,18 +57,10 @@ typedef struct _WINTUN_ADAPTER* WINTUN_ADAPTER_HANDLE;
  * GetLastError.
  */
 typedef _Must_inspect_result_
-  _Return_type_success_(
-return != NULL)
+_Return_type_success_(return != NULL)
 _Post_maybenull_
-WINTUN_ADAPTER_HANDLE(WINAPI
-WINTUN_CREATE_ADAPTER_FUNC)
-(
-_In_z_ LPCWSTR
-Name,
-_In_z_ LPCWSTR
-TunnelType,
-_In_opt_ const GUID
-*RequestedGUID);
+WINTUN_ADAPTER_HANDLE(WINAPI WINTUN_CREATE_ADAPTER_FUNC)
+(_In_z_ LPCWSTR Name, _In_z_ LPCWSTR TunnelType, _In_opt_ const GUID *RequestedGUID);
 
 /**
  * Opens an existing Wintun adapter.
@@ -81,23 +73,16 @@ _In_opt_ const GUID
  * GetLastError.
  */
 typedef _Must_inspect_result_
-  _Return_type_success_(
-return != NULL)
+_Return_type_success_(return != NULL)
 _Post_maybenull_
-WINTUN_ADAPTER_HANDLE(WINAPI
-WINTUN_OPEN_ADAPTER_FUNC)(
-_In_z_ LPCWSTR
-Name);
+WINTUN_ADAPTER_HANDLE(WINAPI WINTUN_OPEN_ADAPTER_FUNC)(_In_z_ LPCWSTR Name);
 
 /**
  * Releases Wintun adapter resources and, if adapter was created with WintunCreateAdapter, removes adapter.
  *
  * @param Adapter       Adapter handle obtained with WintunCreateAdapter or WintunOpenAdapter.
  */
-typedef VOID(WINAPI
-WINTUN_CLOSE_ADAPTER_FUNC)(
-_In_opt_ WINTUN_ADAPTER_HANDLE
-Adapter);
+typedef VOID(WINAPI WINTUN_CLOSE_ADAPTER_FUNC)(_In_opt_ WINTUN_ADAPTER_HANDLE Adapter);
 
 /**
  * Deletes the Wintun driver if there are no more adapters in use.
@@ -106,8 +91,7 @@ Adapter);
  *         get extended error information, call GetLastError.
  */
 typedef _Return_type_success_(return != FALSE)
-BOOL(WINAPI
-WINTUN_DELETE_DRIVER_FUNC)(VOID);
+BOOL(WINAPI WINTUN_DELETE_DRIVER_FUNC)(VOID);
 
 /**
  * Returns the LUID of the adapter.
@@ -116,12 +100,7 @@ WINTUN_DELETE_DRIVER_FUNC)(VOID);
  *
  * @param Luid          Pointer to LUID to receive adapter LUID.
  */
-typedef VOID(WINAPI
-WINTUN_GET_ADAPTER_LUID_FUNC)(
-_In_ WINTUN_ADAPTER_HANDLE
-Adapter,
-_Out_ NET_LUID
-*Luid);
+typedef VOID(WINAPI WINTUN_GET_ADAPTER_LUID_FUNC)(_In_ WINTUN_ADAPTER_HANDLE Adapter, _Out_ NET_LUID *Luid);
 
 /**
  * Determines the version of the Wintun driver currently loaded.
@@ -131,16 +110,16 @@ _Out_ NET_LUID
  *         ERROR_FILE_NOT_FOUND  Wintun not loaded
  */
 typedef _Return_type_success_(return != 0)
-DWORD(WINAPI
-WINTUN_GET_RUNNING_DRIVER_VERSION_FUNC)(VOID);
+DWORD(WINAPI WINTUN_GET_RUNNING_DRIVER_VERSION_FUNC)(VOID);
 
 /**
  * Determines the level of logging, passed to WINTUN_LOGGER_CALLBACK.
  */
-typedef enum {
-  WINTUN_LOG_INFO, /**< Informational */
-  WINTUN_LOG_WARN, /**< Warning */
-  WINTUN_LOG_ERR   /**< Error */
+typedef enum
+{
+    WINTUN_LOG_INFO, /**< Informational */
+    WINTUN_LOG_WARN, /**< Warning */
+    WINTUN_LOG_ERR   /**< Error */
 } WINTUN_LOGGER_LEVEL;
 
 /**
@@ -152,14 +131,10 @@ typedef enum {
  *
  * @param Message       Message text.
  */
-typedef VOID(CALLBACK
-*WINTUN_LOGGER_CALLBACK)(
-_In_ WINTUN_LOGGER_LEVEL
-Level,
-_In_ DWORD64
-Timestamp,
-_In_z_ LPCWSTR
-Message);
+typedef VOID(CALLBACK *WINTUN_LOGGER_CALLBACK)(
+    _In_ WINTUN_LOGGER_LEVEL Level,
+    _In_ DWORD64 Timestamp,
+    _In_z_ LPCWSTR Message);
 
 /**
  * Sets logger callback function.
@@ -168,10 +143,7 @@ Message);
  *                      threads concurrently. Should the logging require serialization, you must handle serialization in
  *                      NewLogger. Set to NULL to disable.
  */
-typedef VOID(WINAPI
-WINTUN_SET_LOGGER_FUNC)(
-_In_ WINTUN_LOGGER_CALLBACK
-NewLogger);
+typedef VOID(WINAPI WINTUN_SET_LOGGER_FUNC)(_In_ WINTUN_LOGGER_CALLBACK NewLogger);
 
 /**
  * Minimum ring capacity.
@@ -186,7 +158,7 @@ NewLogger);
 /**
  * A handle representing Wintun session
  */
-typedef struct _TUN_SESSION* WINTUN_SESSION_HANDLE;
+typedef struct _TUN_SESSION *WINTUN_SESSION_HANDLE;
 
 /**
  * Starts Wintun session.
@@ -200,25 +172,16 @@ typedef struct _TUN_SESSION* WINTUN_SESSION_HANDLE;
  *         NULL. To get extended error information, call GetLastError.
  */
 typedef _Must_inspect_result_
-  _Return_type_success_(
-return != NULL)
+_Return_type_success_(return != NULL)
 _Post_maybenull_
-WINTUN_SESSION_HANDLE(WINAPI
-WINTUN_START_SESSION_FUNC)(
-_In_ WINTUN_ADAPTER_HANDLE
-Adapter,
-_In_ DWORD
-Capacity);
+WINTUN_SESSION_HANDLE(WINAPI WINTUN_START_SESSION_FUNC)(_In_ WINTUN_ADAPTER_HANDLE Adapter, _In_ DWORD Capacity);
 
 /**
  * Ends Wintun session.
  *
  * @param Session       Wintun session handle obtained with WintunStartSession
  */
-typedef VOID(WINAPI
-WINTUN_END_SESSION_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session);
+typedef VOID(WINAPI WINTUN_END_SESSION_FUNC)(_In_ WINTUN_SESSION_HANDLE Session);
 
 /**
  * Gets Wintun session's read-wait event handle.
@@ -230,10 +193,7 @@ Session);
  *         load), wait for this event to become signaled before retrying WintunReceivePackets. Do not call
  *         CloseHandle on this event - it is managed by the session.
  */
-typedef HANDLE(WINAPI
-WINTUN_GET_READ_WAIT_EVENT_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session);
+typedef HANDLE(WINAPI WINTUN_GET_READ_WAIT_EVENT_FUNC)(_In_ WINTUN_SESSION_HANDLE Session);
 
 /**
  * Maximum IP packet size
@@ -256,16 +216,10 @@ Session);
  *         ERROR_INVALID_DATA   Wintun buffer is corrupt
  */
 typedef _Must_inspect_result_
-  _Return_type_success_(
-return != NULL)
+_Return_type_success_(return != NULL)
 _Post_maybenull_
-_Post_writable_byte_size_(* PacketSize)
-BYTE* (WINAPI
-WINTUN_RECEIVE_PACKET_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session,
-_Out_ DWORD
-*PacketSize);
+_Post_writable_byte_size_(*PacketSize)
+BYTE *(WINAPI WINTUN_RECEIVE_PACKET_FUNC)(_In_ WINTUN_SESSION_HANDLE Session, _Out_ DWORD *PacketSize);
 
 /**
  * Releases internal buffer after the received packet has been processed by the client. This function is thread-safe.
@@ -275,12 +229,7 @@ _Out_ DWORD
  * @param Packet        Packet obtained with WintunReceivePacket
  */
 typedef VOID(
-  WINAPI
-WINTUN_RELEASE_RECEIVE_PACKET_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session,
-_In_ const BYTE
-*Packet);
+    WINAPI WINTUN_RELEASE_RECEIVE_PACKET_FUNC)(_In_ WINTUN_SESSION_HANDLE Session, _In_ const BYTE *Packet);
 
 /**
  * Allocates memory for a packet to send. After the memory is filled with packet data, call WintunSendPacket to send
@@ -298,16 +247,10 @@ _In_ const BYTE
  *         ERROR_BUFFER_OVERFLOW  Wintun buffer is full;
  */
 typedef _Must_inspect_result_
-  _Return_type_success_(
-return != NULL)
+_Return_type_success_(return != NULL)
 _Post_maybenull_
 _Post_writable_byte_size_(PacketSize)
-BYTE* (WINAPI
-WINTUN_ALLOCATE_SEND_PACKET_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session,
-_In_ DWORD
-PacketSize);
+BYTE *(WINAPI WINTUN_ALLOCATE_SEND_PACKET_FUNC)(_In_ WINTUN_SESSION_HANDLE Session, _In_ DWORD PacketSize);
 
 /**
  * Sends the packet and releases internal buffer. WintunSendPacket is thread-safe, but the WintunAllocateSendPacket
@@ -318,12 +261,7 @@ PacketSize);
  *
  * @param Packet        Packet obtained with WintunAllocateSendPacket
  */
-typedef VOID(WINAPI
-WINTUN_SEND_PACKET_FUNC)(
-_In_ WINTUN_SESSION_HANDLE
-Session,
-_In_ const BYTE
-*Packet);
+typedef VOID(WINAPI WINTUN_SEND_PACKET_FUNC)(_In_ WINTUN_SESSION_HANDLE Session, _In_ const BYTE *Packet);
 
 #pragma warning(pop)
 

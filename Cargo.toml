@@ -2,4 +2,5 @@
 members = [
     "tunio",
     "wintun-sys",
+    "netconfig"
 ]

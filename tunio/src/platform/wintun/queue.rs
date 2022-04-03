@@ -21,9 +21,9 @@ use crate::platform::wintun::handle::HandleWrapper;
 use crate::traits::QueueT;
 use wintun_sys::{DWORD, WINTUN_SESSION_HANDLE};
 
-impl QueueT for WinTunStream {}
+impl QueueT for Queue {}
 
-pub struct WinTunStream {
+pub struct Queue {
     session_handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
 
     wintun: Arc<wintun_sys::wintun>,
@@ -45,7 +45,7 @@ pub struct WinTunStream {
 
 const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
 
-impl WinTunStream {
+impl Queue {
     pub fn new(
         handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
         wintun: Arc<wintun_sys::wintun>,
@@ -71,7 +71,7 @@ impl WinTunStream {
 
         let (write_status_tx, write_status_rx) = crossbeam_channel::bounded(1);
 
-        WinTunStream {
+        Queue {
             session_handle: handle,
             wintun,
             cmd_event,
@@ -113,7 +113,7 @@ impl WinTunStream {
                 }
                 packet_tx
                     .send(buffer.split().freeze())
-                    .expect("Stream object is ok");
+                    .expect("Queue object is ok");
                 while let Ok(waker) = wakers_rx.try_recv() {
                     waker.wake();
                 }
@@ -167,7 +167,7 @@ impl WinTunStream {
     }
 }
 
-impl Read for WinTunStream {
+impl Read for Queue {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.packet_rx.try_recv() {
             Err(TryRecvError::Empty) => Err(io::Error::from(io::ErrorKind::WouldBlock)),
@@ -184,7 +184,7 @@ impl Read for WinTunStream {
     }
 }
 
-impl Write for WinTunStream {
+impl Write for Queue {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         Self::do_write(buf, self.wintun.clone(), self.session_handle.clone())
     }
@@ -194,7 +194,7 @@ impl Write for WinTunStream {
     }
 }
 
-impl Drop for WinTunStream {
+impl Drop for Queue {
     fn drop(&mut self) {
         self.shutdown_reader();
         unsafe {
@@ -204,7 +204,7 @@ impl Drop for WinTunStream {
 }
 
 #[cfg(feature = "async-tokio")]
-impl AsyncRead for WinTunStream {
+impl AsyncRead for Queue {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -231,7 +231,7 @@ impl AsyncRead for WinTunStream {
 }
 
 #[cfg(feature = "async-tokio")]
-impl AsyncWrite for WinTunStream {
+impl AsyncWrite for Queue {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,

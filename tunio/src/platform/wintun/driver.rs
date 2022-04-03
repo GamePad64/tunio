@@ -1,19 +1,19 @@
 use crate::config::IfaceConfig;
 use crate::error::Error;
-use crate::platform::wintun::config::WinTunPlatformIfaceConfig;
-use crate::platform::wintun::interface::WinTunInterface;
+use crate::platform::wintun::config::PlatformInterfaceConfig;
+use crate::platform::wintun::interface::Interface;
 use crate::platform::wintun::logger::wintun_logger;
 use crate::traits::DriverT;
 use std::sync::Arc;
 use wintun_sys;
 
-pub struct WinTunDriver {
+pub struct Driver {
     pub wintun: Arc<wintun_sys::wintun>,
 }
 
-impl DriverT for WinTunDriver {
-    type PlatformInterface = WinTunInterface;
-    type PlatformInterfaceConfig = WinTunPlatformIfaceConfig;
+impl DriverT for Driver {
+    type PlatformInterface = Interface;
+    type PlatformInterfaceConfig = PlatformInterfaceConfig;
 
     fn new() -> Result<Self, Error> {
         let library_name = "wintun".to_string();
@@ -36,6 +36,6 @@ impl DriverT for WinTunDriver {
         &mut self,
         config: IfaceConfig<Self>,
     ) -> Result<Self::PlatformInterface, Error> {
-        WinTunInterface::new(self.wintun.clone(), config)
+        Interface::new(self.wintun.clone(), config)
     }
 }

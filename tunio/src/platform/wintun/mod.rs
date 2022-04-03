@@ -6,7 +6,7 @@ mod interface;
 mod logger;
 mod queue;
 
-pub use config::WinTunPlatformIfaceConfig;
-pub use driver::WinTunDriver;
-pub use interface::*;
-pub use queue::WinTunStream;
+pub use config::PlatformInterfaceConfig;
+pub use driver::Driver;
+pub use interface::Interface;
+pub use queue::Queue;
