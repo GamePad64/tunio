@@ -10,6 +10,7 @@ tokio = { version = "1.17.0", features = ["rt"], optional = true }
 log = "0.4.16"
 futures = "0.3.21"
 getset = { git = "https://github.com/GamePad64/getset", branch = "fluent" }
+netconfig = { path = "../netconfig" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 widestring = "0.5.1"
@@ -17,7 +18,6 @@ uuid = { version = "0.8.2", features = ["v4"] }
 bytes = "1.1.0"
 crossbeam-channel = "0.5.4"
 wintun-sys = { path = "../wintun-sys" }
-netconfig = { path = "../netconfig" }
 windows = { version = "0.34.0", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_System_WindowsProgramming", "Win32_NetworkManagement_IpHelper"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

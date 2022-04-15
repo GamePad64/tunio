@@ -1,22 +1,37 @@
 mod ifreq;
 pub mod interface;
-pub mod params;
+mod queue;
 
-use crate::linux::interface::LinuxInterface;
-use crate::linux::params::{LinuxDriverParams, LinuxInterfaceParams};
-use crate::traits::DriverT;
-use crate::{Error, InterfaceT};
+use crate::config::IfaceConfig;
+use crate::traits::{DriverT, PlatformIfaceConfigT};
+use crate::Error;
 use std::ffi::CString;
 use std::sync::Arc;
 
-pub struct LinuxDriver;
+pub use interface::LinuxInterface;
 
-impl DriverT for LinuxDriver {
-    type DriverParamsT = LinuxDriverParams;
+pub struct Driver;
 
-    fn new(_params: Self::DriverParamsT) -> Result<Arc<Self>, Error> {
-        Ok(Arc::new(Self {}))
+#[derive(Default)]
+pub struct PlatformInterfaceConfig {}
+
+impl PlatformIfaceConfigT for PlatformInterfaceConfig {}
+
+impl DriverT for Driver {
+    type PlatformInterface = LinuxInterface;
+    type PlatformInterfaceConfig = PlatformInterfaceConfig;
+
+    fn new() -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        Ok(Driver {})
+    }
+
+    fn new_interface(
+        &mut self,
+        config: IfaceConfig<Self>,
+    ) -> Result<Self::PlatformInterface, Error> {
+        interface::LinuxInterface::new(config)
     }
 }
-
-impl LinuxDriver {}

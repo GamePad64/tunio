@@ -5,3 +5,9 @@ pub enum Error {
     InternalError,
     AccessDenied,
 }
+
+impl From<nix::Error> for Error {
+    fn from(_: nix::Error) -> Self {
+        Error::InternalError
+    }
+}

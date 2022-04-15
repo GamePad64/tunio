@@ -12,6 +12,6 @@ pub type DefaultDriver = platform::wintun::Driver;
 pub type DefaultInterface = platform::wintun::Interface;
 
 #[cfg(target_os = "linux")]
-pub type DefaultDriver = platform::linux::LinuxDriver;
+pub type DefaultDriver = platform::linux::Driver;
 #[cfg(target_os = "linux")]
 pub type DefaultInterface = platform::linux::interface::LinuxInterface;

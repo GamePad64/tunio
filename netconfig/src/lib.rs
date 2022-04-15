@@ -1,55 +1,66 @@
 mod error;
-#[cfg(target_os = "windows")]
-pub mod win;
-
+mod traits;
+pub use crate::traits::{InterfaceHandleCommonT, MetadataCommonT};
 pub use error::Error;
 pub use ipnet::IpNet;
 use std::collections::HashSet;
 
-#[cfg(target_os = "windows")]
-pub struct InterfaceHandle(win::InterfaceHandle);
-#[cfg(target_os = "windows")]
-pub struct Metadata(win::Metadata);
+cfg_if::cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        pub mod win;
+        pub struct InterfaceHandle(win::InterfaceHandle);
+        pub struct Metadata(win::Metadata);
+    } else if #[cfg(target_os = "linux")] {
+        pub mod linux;
+        pub struct InterfaceHandle(linux::InterfaceHandle);
+        pub struct Metadata(linux::Metadata);
+    }
+}
 
-impl Metadata {
-    pub fn name(&self) -> String {
-        self.0.name().clone()
+impl MetadataCommonT for Metadata {
+    fn name(&self) -> String {
+        self.0.name()
     }
 
-    pub fn handle(&self) -> InterfaceHandle {
+    fn handle(&self) -> InterfaceHandle {
         self.0.handle()
     }
 
-    pub fn mtu(&self) -> u32 {
+    fn mtu(&self) -> u32 {
         self.0.mtu()
     }
 }
 
-impl InterfaceHandle {
-    pub fn metadata(&self) -> Result<Metadata, Error> {
+impl InterfaceHandleCommonT for InterfaceHandle {
+    fn metadata(&self) -> Result<Metadata, Error> {
         self.0.metadata()
     }
 
-    pub fn add_ip(&self, network: IpNet) {
+    fn add_ip(&self, network: IpNet) {
         self.0.add_ip(network)
     }
 
-    pub fn remove_ip(&self, network: IpNet) {
+    fn remove_ip(&self, network: IpNet) {
         self.0.remove_ip(network)
     }
 
-    pub fn get_addresses(&self) -> Result<Vec<IpNet>, Error> {
+    fn get_addresses(&self) -> Result<Vec<IpNet>, Error> {
         self.0.get_addresses()
     }
 
-    pub fn set_mtu(&self, mtu: u32) -> Result<(), Error> {
+    fn set_mtu(&self, mtu: u32) -> Result<(), Error> {
         self.0.set_mtu(mtu)
     }
 }
 
-#[cfg(target_os = "windows")]
 pub fn list_interfaces() -> Vec<crate::InterfaceHandle> {
-    win::list_interfaces()
+    cfg_if::cfg_if! {
+        if #[cfg(target_os = "windows")] {
+            win::list_interfaces()
+        } else if #[cfg(target_os = "linux")] {
+            linux::list_interfaces()
+        }
+    }
 }
 
 pub fn list_addresses() -> Vec<IpNet> {
@@ -57,7 +68,7 @@ pub fn list_addresses() -> Vec<IpNet> {
 
     let addresses = interfaces
         .iter()
-        .flat_map(|iface| iface.0.get_addresses())
+        .flat_map(|iface| iface.get_addresses())
         .flatten();
 
     HashSet::<IpNet>::from_iter(addresses)
