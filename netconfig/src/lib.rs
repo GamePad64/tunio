@@ -7,9 +7,9 @@ use std::collections::HashSet;
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
-        pub mod win;
-        pub struct InterfaceHandle(win::InterfaceHandle);
-        pub struct Metadata(win::Metadata);
+        pub mod win32;
+        pub struct InterfaceHandle(win32::InterfaceHandle);
+        pub struct Metadata(win32::Metadata);
     } else if #[cfg(target_os = "linux")] {
         pub mod linux;
         pub struct InterfaceHandle(linux::InterfaceHandle);
@@ -56,7 +56,7 @@ impl InterfaceHandleCommonT for InterfaceHandle {
 pub fn list_interfaces() -> Vec<crate::InterfaceHandle> {
     cfg_if::cfg_if! {
         if #[cfg(target_os = "windows")] {
-            win::list_interfaces()
+            win32::list_interfaces()
         } else if #[cfg(target_os = "linux")] {
             linux::list_interfaces()
         }

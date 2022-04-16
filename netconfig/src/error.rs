@@ -6,6 +6,7 @@ pub enum Error {
     AccessDenied,
 }
 
+#[cfg(not(target_os = "windows"))]
 impl From<nix::Error> for Error {
     fn from(_: nix::Error) -> Self {
         Error::InternalError

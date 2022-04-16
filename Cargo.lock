@@ -244,18 +244,6 @@ dependencies = [
 [[package]]
 name = "getset"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e45727250e75cc04ff2846a66397da8ef2b3db8e40e0cef4df67950a07621eb9"
-dependencies = [
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "getset"
-version = "0.1.2"
 source = "git+https://github.com/GamePad64/getset?branch=fluent#6f00e822bb8933bd2f4e09ae9f12b38360259447"
 dependencies = [
  "proc-macro-error",
@@ -377,10 +365,8 @@ name = "netconfig"
 version = "0.1.0"
 dependencies = [
  "bitflags",
- "bytes",
  "cfg-if",
  "env_logger",
- "getset 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipnet",
  "libc",
  "log",
@@ -708,7 +694,7 @@ dependencies = [
  "env_logger",
  "etherparse",
  "futures",
- "getset 0.1.2 (git+https://github.com/GamePad64/getset?branch=fluent)",
+ "getset",
  "libc",
  "log",
  "netconfig",
