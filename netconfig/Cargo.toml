@@ -18,7 +18,7 @@ netlink-sys = "0.8.2"
 netlink-packet-route = "0.11.0"
 
 [dependencies]
-ipnet = "2.4.0"
+ipnet = "2.5.0"
 log = "0.4.16"
 cfg-if = "1.0.0"
 
