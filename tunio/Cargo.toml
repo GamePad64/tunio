@@ -15,7 +15,7 @@ thiserror = "1.0.30"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 widestring = "0.5.1"
-uuid = { version = "0.8.2", features = ["v4"] }
+uuid = { version = "1.0.0", features = ["v4"] }
 bytes = "1.1.0"
 crossbeam-channel = "0.5.4"
 wintun-sys = { path = "../wintun-sys" }
