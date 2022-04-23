@@ -21,7 +21,7 @@ use crate::platform::wintun::handle::HandleWrapper;
 use crate::traits::QueueT;
 use wintun_sys::{DWORD, WINTUN_SESSION_HANDLE};
 
-impl QueueT for Queue {}
+// impl QueueT for Queue {}
 
 pub struct Queue {
     session_handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
@@ -203,7 +203,6 @@ impl Drop for Queue {
     }
 }
 
-#[cfg(feature = "async-tokio")]
 impl AsyncRead for Queue {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -230,7 +229,6 @@ impl AsyncRead for Queue {
     }
 }
 
-#[cfg(feature = "async-tokio")]
 impl AsyncWrite for Queue {
     fn poll_write(
         self: Pin<&mut Self>,

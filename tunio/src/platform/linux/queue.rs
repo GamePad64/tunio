@@ -1,21 +1,33 @@
-use crate::platform::linux::ifreq::{ifreq, tunsetiff};
-use crate::traits::QueueT;
+use crate::traits::{QueueT, TokioQueueT};
 use crate::Error;
 use futures::ready;
-use libc::IFF_TUN;
+use netconfig::sys::posix::ifreq::ifreq;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, RawFd};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::{fs, io};
-use tokio::io::unix::AsyncFd;
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::io::{unix::AsyncFd, AsyncRead, AsyncWrite, ReadBuf};
 
-// impl QueueT for Queue;
+impl QueueT for Queue {}
+impl TokioQueueT for Queue {}
+
+mod ioctls {
+    nix::ioctl_write_int!(tunsetiff, b'T', 202);
+    nix::ioctl_write_int!(tunsetpersist, b'T', 203);
+    nix::ioctl_write_int!(tunsetowner, b'T', 204);
+    nix::ioctl_write_int!(tunsetgroup, b'T', 206);
+}
 
 pub struct Queue {
     tun_device: AsyncFd<fs::File>,
+}
+
+impl AsRawFd for Queue {
+    fn as_raw_fd(&self) -> RawFd {
+        self.inner_file().as_raw_fd()
+    }
 }
 
 impl Queue {
@@ -26,16 +38,40 @@ impl Queue {
             .custom_flags(libc::O_NONBLOCK)
             .open("/dev/net/tun")?;
 
-        let init_flags = IFF_TUN;
+        let init_flags = libc::IFF_TUN;
 
         let mut req = ifreq::new(name);
         req.ifr_ifru.ifru_flags = init_flags as _;
 
-        unsafe { tunsetiff(tun_device.as_raw_fd(), &req as *const _ as _) }.unwrap();
+        unsafe { ioctls::tunsetiff(tun_device.as_raw_fd(), &req as *const _ as _) }.unwrap();
 
         Ok(Queue {
             tun_device: AsyncFd::new(tun_device)?,
         })
+    }
+
+    fn inner_file(&self) -> &fs::File {
+        self.tun_device.get_ref()
+    }
+
+    fn inner_file_mut(&mut self) -> &mut fs::File {
+        self.tun_device.get_mut()
+    }
+}
+
+impl Read for Queue {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner_file_mut().read(buf)
+    }
+}
+
+impl Write for Queue {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner_file_mut().write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner_file_mut().flush()
     }
 }
 

@@ -44,9 +44,13 @@ impl InterfaceT for Interface {
         if self.stream.is_some() {
             let _ = self.stream.take();
             Ok(())
-        } else {
-            Err(Error::InterfaceStateInvalid)
         }
+    }
+
+    #[cfg(feature = "netconfig")]
+    fn handle(&self) -> netconfig::InterfaceHandle {
+        use netconfig::win32::InterfaceHandleExt;
+        netconfig::InterfaceHandle::from_luid(self.luid())
     }
 }
 
@@ -88,7 +92,7 @@ impl Interface {
         })
     }
 
-    pub fn get_luid(&self) -> NET_LUID_LH {
+    pub fn luid(&self) -> NET_LUID_LH {
         let mut luid_buf: wintun_sys::NET_LUID = unsafe { std::mem::zeroed() };
         unsafe {
             self.wintun
@@ -99,10 +103,10 @@ impl Interface {
         }
     }
 
-    pub fn get_guid(&self) -> GUID {
+    pub fn guid(&self) -> GUID {
         let mut guid = GUID::zeroed();
         unsafe {
-            ConvertInterfaceLuidToGuid(&self.get_luid(), &mut guid as _).unwrap();
+            ConvertInterfaceLuidToGuid(&self.luid(), &mut guid as _).unwrap();
         }
         guid
     }
