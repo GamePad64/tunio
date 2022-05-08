@@ -1,31 +1,27 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use super::session::Session;
+use crate::platform::wintun::event::SafeEvent;
+use crate::traits::QueueT;
+use bytes::{Bytes, BytesMut};
 use crossbeam_channel::TryRecvError;
 use log::warn;
 use std::cmp::min;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::task::{Context, Poll, Waker};
 use std::{io, thread};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
 use windows::{
-    Win32::Foundation::{ERROR_NO_MORE_ITEMS, HANDLE},
     Win32::System::Threading::{WaitForMultipleObjects, WAIT_OBJECT_0},
     Win32::System::WindowsProgramming::INFINITE,
 };
-
-use crate::platform::wintun::event::SafeEvent;
-use crate::platform::wintun::handle::HandleWrapper;
-use crate::traits::QueueT;
-use wintun_sys::{DWORD, WINTUN_SESSION_HANDLE};
+use wintun_sys::WINTUN_MAX_IP_PACKET_SIZE;
 
 impl QueueT for Queue {}
 
 pub struct Queue {
-    session_handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
-
-    wintun: Arc<wintun_sys::wintun>,
+    session: Arc<Mutex<Session>>,
 
     // Reader
     shutdown_event: Arc<SafeEvent>,
@@ -44,14 +40,11 @@ pub struct Queue {
 const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
 
 impl Queue {
-    pub fn new(
-        handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
-        wintun: Arc<wintun_sys::wintun>,
-    ) -> Self {
+    pub(crate) fn new(session: Session) -> Self {
+        let session = Arc::new(Mutex::new(session));
         let shutdown_event = Arc::new(SafeEvent::new());
 
-        let inner_handle = handle.clone();
-        let inner_wintun = wintun.clone();
+        let inner_session = session.clone();
         let inner_shutdown_event = shutdown_event.clone();
 
         let (packet_tx, packet_rx) = crossbeam_channel::bounded(16);
@@ -59,8 +52,7 @@ impl Queue {
 
         let reader_thread = Some(thread::spawn(move || {
             Self::reader_thread(
-                inner_wintun,
-                inner_handle,
+                inner_session,
                 inner_shutdown_event,
                 packet_tx,
                 reader_wakers_rx,
@@ -70,8 +62,7 @@ impl Queue {
         let (write_status_tx, write_status_rx) = crossbeam_channel::bounded(1);
 
         Queue {
-            session_handle: handle,
-            wintun,
+            session,
             shutdown_event,
             packet_rx,
             reader_thread,
@@ -83,73 +74,46 @@ impl Queue {
     }
 
     fn reader_thread(
-        wintun: Arc<wintun_sys::wintun>,
-        handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
+        session: Arc<Mutex<Session>>,
         cmd_event: Arc<SafeEvent>,
         packet_tx: crossbeam_channel::Sender<Bytes>,
         wakers_rx: crossbeam_channel::Receiver<Waker>,
     ) {
-        let read_event = HANDLE(unsafe { wintun.WintunGetReadWaitEvent(handle.0) as isize });
+        let read_event = session.lock().unwrap().read_event();
         let mut buffer = BytesMut::new(); // TODO: use with_capacity with full ring capacity
 
         'reader: loop {
-            let mut packet_len: DWORD = 0;
-            let packet = unsafe { wintun.WintunReceivePacket(handle.0, &mut packet_len) };
+            buffer.resize(WINTUN_MAX_IP_PACKET_SIZE as _, 0);
+            let res = session.lock().unwrap().read(&mut buffer);
+            match res {
+                Ok(packet_len) => {
+                    buffer.truncate(packet_len);
+                    packet_tx
+                        .send(buffer.split().freeze())
+                        .expect("Queue object is ok");
 
-            if !packet.is_null() {
-                unsafe {
-                    let packet_slice = std::slice::from_raw_parts(packet, packet_len as usize);
-                    buffer.put(packet_slice);
-                    wintun.WintunReleaseReceivePacket(handle.0, packet)
+                    // TODO: use single value channel or protected variable
+                    if let Some(waker) = wakers_rx.try_iter().last() {
+                        waker.wake();
+                    }
                 }
-                packet_tx
-                    .send(buffer.split().freeze())
-                    .expect("Queue object is ok");
+                Err(err) => {
+                    if err.kind() == ErrorKind::WouldBlock {
+                        let result = unsafe {
+                            WaitForMultipleObjects(&[cmd_event.0, read_event], false, INFINITE)
+                        };
+                        match result {
+                            // Command
+                            WAIT_OBJECT_0 => break 'reader,
+                            // Ready for read
+                            WAIT_OBJECT_1 => continue,
 
-                // TODO: use single value channel or protected variable
-                if let Some(waker) = wakers_rx.try_iter().last() {
-                    waker.wake();
-                }
-            } else {
-                let err = io::Error::last_os_error();
-                if err.raw_os_error().unwrap() == ERROR_NO_MORE_ITEMS.0 as _ {
-                    let result = unsafe {
-                        WaitForMultipleObjects(&[cmd_event.0, read_event], false, INFINITE)
-                    };
-                    match result {
-                        // Command
-                        WAIT_OBJECT_0 => break 'reader,
-                        // Ready for read
-                        WAIT_OBJECT_1 => continue,
-
-                        e => {
-                            panic!("Unexpected event result: {e:?}");
+                            e => {
+                                panic!("Unexpected event result: {e:?}");
+                            }
                         }
                     }
                 }
-            }
-        }
-    }
-
-    fn do_write(
-        buf: &[u8],
-        wintun: Arc<wintun_sys::wintun>,
-        session_handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
-    ) -> io::Result<usize> {
-        let packet = unsafe { wintun.WintunAllocateSendPacket(session_handle.0, buf.len() as _) };
-        if !packet.is_null() {
-            // Copy buffer to allocated packet
-            unsafe {
-                packet.copy_from_nonoverlapping(buf.as_ptr(), buf.len());
-                wintun.WintunSendPacket(session_handle.0, packet); // Deallocates packet
-            }
-            Ok(buf.len())
-        } else {
-            let err = io::Error::last_os_error();
-            if err.raw_os_error().unwrap() == ERROR_BUFFER_OVERFLOW.0 as _ {
-                Err(io::Error::from(io::ErrorKind::WouldBlock))
-            } else {
-                Err(err)
             }
         }
     }
@@ -174,11 +138,11 @@ impl Read for Queue {
 
 impl Write for Queue {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        Self::do_write(buf, self.wintun.clone(), self.session_handle.clone())
+        self.session.lock().unwrap().write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        Ok(())
+        self.session.lock().unwrap().flush()
     }
 }
 
@@ -188,10 +152,6 @@ impl Drop for Queue {
         self.shutdown_event.set_event();
         // Join thread
         let _ = self.reader_thread.take().unwrap().join();
-
-        unsafe {
-            self.wintun.WintunEndSession(self.session_handle.0);
-        }
     }
 }
 
@@ -229,8 +189,7 @@ impl AsyncWrite for Queue {
     ) -> Poll<io::Result<usize>> {
         let buffer = Bytes::copy_from_slice(buf);
 
-        let inner_handle = HandleWrapper(self.session_handle.0);
-        let inner_wintun = self.wintun.clone();
+        let inner_session = self.session.clone();
         let inner_write_status_tx = self.write_status_tx.clone();
         let waker = cx.waker().clone();
 
@@ -238,9 +197,7 @@ impl AsyncWrite for Queue {
             Poll::Ready(result)
         } else {
             self.get_mut().packet_writer_thread = Some(tokio::task::spawn_blocking(move || {
-                let inner_handle = inner_handle;
-
-                let result = Self::do_write(&*buffer, inner_wintun.clone(), inner_handle.clone());
+                let result = inner_session.lock().unwrap().write(&*buffer);
 
                 let _ = inner_write_status_tx.send(result);
                 waker.wake();

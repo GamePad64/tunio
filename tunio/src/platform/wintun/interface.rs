@@ -1,3 +1,4 @@
+use super::session::Session;
 use crate::config::IfaceConfig;
 use crate::platform::wintun::driver::Driver;
 use crate::platform::wintun::handle::HandleWrapper;
@@ -31,15 +32,9 @@ impl InterfaceT for Interface {
         // let range = MIN_RING_CAPACITY..=MAX_RING_CAPACITY;
         // if !range.contains(&capacity) {}
 
-        let handle = unsafe { self.wintun.WintunStartSession(self.handle.0, capacity) };
+        let session = Session::new(self.handle.0, self.wintun.clone(), capacity)?;
 
-        if handle.is_null() {
-            let err = io::Error::last_os_error();
-            error!("Failed to create session: {err}");
-            return Err(Error::from(err));
-        }
-
-        self.queue = Some(Queue::new(HandleWrapper(handle), self.wintun.clone()));
+        self.queue = Some(Queue::new(session));
 
         Ok(())
     }
