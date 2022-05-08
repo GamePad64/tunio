@@ -1,4 +1,5 @@
-use super::handle::HandleWrapper;
+use super::Adapter;
+use super::HandleWrapper;
 use crate::Error;
 use bytes::BufMut;
 use log::error;
@@ -7,8 +8,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_NO_MORE_ITEMS, HANDLE, WIN32_ERROR};
 use wintun_sys::{
-    DWORD, WINTUN_ADAPTER_HANDLE, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY,
-    WINTUN_SESSION_HANDLE,
+    DWORD, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY, WINTUN_SESSION_HANDLE,
 };
 
 struct PacketReader {
@@ -55,20 +55,20 @@ impl Drop for PacketReader {
     }
 }
 
-pub(crate) struct Session {
+pub struct Session {
     handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
     wintun: Arc<wintun_sys::wintun>,
 }
 
 impl Session {
     pub fn new(
-        adapter_handle: WINTUN_ADAPTER_HANDLE,
+        adapter: Arc<Adapter>,
         wintun: Arc<wintun_sys::wintun>,
         capacity: u32,
     ) -> Result<Self, Error> {
         let _ = Self::validate_capacity(capacity)?;
 
-        let session_handle = unsafe { wintun.WintunStartSession(adapter_handle, capacity) };
+        let session_handle = unsafe { wintun.WintunStartSession(adapter.handle(), capacity) };
 
         if session_handle.is_null() {
             let err = io::Error::last_os_error();

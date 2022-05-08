@@ -1,8 +1,8 @@
+use super::logger::wintun_logger;
+use super::Interface;
+use super::PlatformIfConfig;
 use crate::config::IfConfig;
 use crate::error::Error;
-use crate::platform::wintun::config::PlatformIfConfig;
-use crate::platform::wintun::interface::Interface;
-use crate::platform::wintun::logger::wintun_logger;
 use crate::traits::DriverT;
 use std::sync::Arc;
 use wintun_sys;

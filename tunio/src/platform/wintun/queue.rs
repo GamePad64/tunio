@@ -1,6 +1,6 @@
-use super::session::Session;
-use crate::platform::wintun::event::SafeEvent;
-use crate::traits::QueueT;
+use super::event::SafeEvent;
+use super::wrappers::Session;
+use crate::traits::{AsyncQueueT, QueueT};
 use std::io;
 use std::io::{ErrorKind, Read, Write};
 use std::pin::Pin;
@@ -14,6 +14,7 @@ use windows::{
 };
 
 impl QueueT for Queue {}
+impl AsyncQueueT for Queue {}
 
 #[derive(Default)]
 struct DataReadinessHandler {
