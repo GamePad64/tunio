@@ -18,7 +18,7 @@ pub struct Interface {
 
 impl Interface {
     pub(crate) fn new(params: IfConfig<PlatformIfConfig>) -> Result<Self, Error> {
-        let queue = Queue::new(&*params.name)?;
+        let queue = Queue::new(&*params.name, params.layer)?;
 
         Ok(Self {
             queue,

@@ -1,9 +1,17 @@
 use crate::traits::PlatformIfConfigT;
 use derive_builder::Builder;
 
-#[derive(Builder, Default)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Layer {
+    L2,
+    L3,
+}
+
+#[derive(Builder)]
 pub struct IfConfig<P: PlatformIfConfigT> {
     pub(crate) name: String,
+    #[builder(default = "Layer::L3")]
+    pub(crate) layer: Layer,
 
     #[allow(dead_code)]
     #[builder(setter(custom))]

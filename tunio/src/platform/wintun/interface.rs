@@ -2,7 +2,7 @@ use super::wrappers::Adapter;
 use super::wrappers::Session;
 use super::PlatformIfConfig;
 use super::Queue;
-use crate::config::IfConfig;
+use crate::config::{IfConfig, Layer};
 use crate::traits::{AsyncQueueT, InterfaceT, QueueT};
 use crate::Error;
 use std::io;
@@ -63,6 +63,9 @@ impl Interface {
         params: IfConfig<PlatformIfConfig>,
     ) -> Result<Self, Error> {
         let _ = Session::validate_capacity(params.platform.capacity);
+        if params.layer == Layer::L2 {
+            return Err(Error::LayerUnsupported(params.layer));
+        }
 
         let guid = GUID::new().unwrap();
         let adapter = Arc::new(Adapter::new(

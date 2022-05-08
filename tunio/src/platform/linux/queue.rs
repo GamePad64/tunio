@@ -1,8 +1,9 @@
+use crate::config::Layer;
 use crate::traits::{AsyncQueueT, QueueT};
 use crate::Error;
 use delegate::delegate;
 use futures::ready;
-use libc::IFF_TUN;
+use libc::{IFF_TAP, IFF_TUN};
 use netconfig::sys::posix::ifreq::ifreq;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
@@ -28,14 +29,17 @@ pub struct Queue {
 }
 
 impl Queue {
-    pub(crate) fn new(name: &str) -> Result<Queue, Error> {
+    pub(crate) fn new(name: &str, layer: Layer) -> Result<Queue, Error> {
         let tun_device = fs::OpenOptions::new()
             .read(true)
             .write(true)
             .custom_flags(libc::O_NONBLOCK)
             .open("/dev/net/tun")?;
 
-        let init_flags = IFF_TUN;
+        let init_flags = match layer {
+            Layer::L2 => IFF_TAP,
+            Layer::L3 => IFF_TUN,
+        };
 
         let mut req = ifreq::new(name);
         req.ifr_ifru.ifru_flags = init_flags as _;

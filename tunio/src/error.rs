@@ -1,3 +1,4 @@
+use crate::config::Layer;
 use std::io;
 
 #[derive(Debug)]
@@ -15,6 +16,7 @@ pub enum Error {
         value: String,
         reason: String,
     },
+    LayerUnsupported(Layer),
 }
 
 impl From<io::Error> for Error {

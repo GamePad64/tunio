@@ -1,19 +1,11 @@
 use crate::traits::PlatformIfConfigT;
 use derive_builder::Builder;
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Default)]
 pub struct PlatformIfConfig {
+    #[builder(default = "2 * 1024 * 1024")]
     pub(crate) capacity: u32,
     pub(crate) description: String,
-}
-
-impl Default for PlatformIfConfig {
-    fn default() -> Self {
-        Self {
-            capacity: 2 * 1024 * 1024,
-            description: "".into(),
-        }
-    }
 }
 
 impl PlatformIfConfigT for PlatformIfConfig {

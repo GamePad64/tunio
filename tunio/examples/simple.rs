@@ -1,7 +1,7 @@
 use etherparse::PacketBuilder;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tunio::traits::{DriverT, InterfaceT};
 use tunio::DefaultDriver;
 
@@ -24,7 +24,7 @@ async fn main() {
     iff.remove_ip("18.3.5.6/24".parse().unwrap());
     iff.add_ip("fd3c:dea:7f96:2b14::/64".parse().unwrap());
 
-    for _ in 1..100 {
+    for _ in 1..10 {
         let builder = PacketBuilder::ipv6(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -35,7 +35,7 @@ async fn main() {
         let mut packet = Vec::with_capacity(builder.size(0));
         builder.write(&mut packet, &[]).unwrap();
 
-        // interface.write(&*packet).await;
+        interface.write(&*packet).await;
 
         sleep(Duration::from_secs(1));
     }
