@@ -3,7 +3,7 @@ use crate::traits::{AsyncQueueT, QueueT};
 use crate::Error;
 use delegate::delegate;
 use futures::ready;
-use libc::{IFF_TAP, IFF_TUN};
+use libc::{IFF_NO_PI, IFF_TAP, IFF_TUN};
 use netconfig::sys::posix::ifreq::ifreq;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
@@ -36,10 +36,11 @@ impl Queue {
             .custom_flags(libc::O_NONBLOCK)
             .open("/dev/net/tun")?;
 
-        let init_flags = match layer {
+        let mut init_flags = match layer {
             Layer::L2 => IFF_TAP,
             Layer::L3 => IFF_TUN,
         };
+        init_flags |= IFF_NO_PI;
 
         let mut req = ifreq::new(name);
         req.ifr_ifru.ifru_flags = init_flags as _;
