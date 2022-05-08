@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.17.0", features = ["rt", "net"] }
+tokio = { version = "1.18.2", features = ["rt", "net"] }
 log = "0.4.16"
 futures = "0.3.21"
 netconfig = "0.1.4"
@@ -31,6 +31,6 @@ default = ["wintun"]
 wintun = []
 
 [dev-dependencies]
-tokio = { version = "1.17.0", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
+tokio = { version = "1.18.2", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
 etherparse = "0.10.1"
 env_logger = "0.9.0"
