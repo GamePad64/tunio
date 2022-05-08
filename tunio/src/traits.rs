@@ -1,5 +1,5 @@
-use crate::config::{IfConfig, IfConfigBuilder};
 use crate::Error;
+use crate::{IfConfig, IfConfigBuilder};
 use std::io::{Read, Write};
 use tokio::io::{AsyncRead, AsyncWrite};
 

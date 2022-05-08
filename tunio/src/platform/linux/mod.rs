@@ -11,11 +11,17 @@ pub use queue::Queue;
 
 pub struct Driver;
 
-#[derive(Builder, Default, Clone)]
+#[derive(Builder, Clone)]
 pub struct PlatformIfConfig {}
 
 impl PlatformIfConfigT for PlatformIfConfig {
     type Builder = PlatformIfConfigBuilder;
+}
+
+impl Default for PlatformIfConfig {
+    fn default() -> Self {
+        PlatformIfConfigBuilder::default().build().unwrap()
+    }
 }
 
 impl DriverT for Driver {

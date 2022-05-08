@@ -39,12 +39,8 @@ impl InterfaceT for Interface {
     }
 
     fn down(&mut self) -> Result<(), Error> {
-        if self.queue.is_some() {
-            let _ = self.queue.take();
-            Ok(())
-        } else {
-            Err(Error::InterfaceStateInvalid)
-        }
+        let _ = self.queue.take();
+        Ok(())
     }
 
     fn handle(&self) -> netconfig::InterfaceHandle {

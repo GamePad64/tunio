@@ -1,9 +1,10 @@
-pub mod config;
+pub(crate) mod config;
 pub mod platform;
 pub mod traits;
 
 mod error;
 
+pub use config::*;
 pub use error::Error;
 
 cfg_if::cfg_if! {
