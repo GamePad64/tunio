@@ -1,22 +1,26 @@
 pub mod interface;
-mod queue;
+pub mod queue;
 
-use crate::config::IfaceConfig;
-use crate::traits::{DriverT, PlatformIfaceConfigT};
+use crate::config::IfConfig;
+use crate::traits::{DriverT, PlatformIfConfigT};
 use crate::Error;
+use derive_builder::Builder;
 
-pub use interface::LinuxInterface;
+pub use interface::Interface;
+pub use queue::Queue;
 
 pub struct Driver;
 
-#[derive(Default, Clone)]
-pub struct PlatformInterfaceConfig {}
+#[derive(Builder, Default, Clone)]
+pub struct PlatformIfConfig {}
 
-impl PlatformIfaceConfigT for PlatformInterfaceConfig {}
+impl PlatformIfConfigT for PlatformIfConfig {
+    type Builder = PlatformIfConfigBuilder;
+}
 
 impl DriverT for Driver {
-    type PlatformInterface = LinuxInterface;
-    type PlatformInterfaceConfig = PlatformInterfaceConfig;
+    type PlatformIf = Interface;
+    type PlatformIfConfig = PlatformIfConfig;
 
     fn new() -> Result<Self, Error>
     where
@@ -27,8 +31,8 @@ impl DriverT for Driver {
 
     fn new_interface(
         &mut self,
-        config: IfaceConfig<Self>,
-    ) -> Result<Self::PlatformInterface, Error> {
-        interface::LinuxInterface::new(config)
+        config: IfConfig<PlatformIfConfig>,
+    ) -> Result<Self::PlatformIf, Error> {
+        Interface::new(config)
     }
 }

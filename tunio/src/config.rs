@@ -1,43 +1,22 @@
-use crate::traits::DriverT;
+use crate::traits::PlatformIfConfigT;
+use derive_builder::Builder;
 
-pub struct IfaceConfig<Driver: DriverT> {
+#[derive(Builder, Default)]
+pub struct IfConfig<P: PlatformIfConfigT> {
     pub(crate) name: String,
 
-    pub(crate) platform: Driver::PlatformInterfaceConfig,
+    #[allow(dead_code)]
+    #[builder(setter(custom))]
+    pub(crate) platform: P,
 }
 
-impl<Driver: DriverT> IfaceConfig<Driver> {}
-
-impl<Driver: DriverT> IfaceConfig<Driver> {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    pub fn set_name(mut self, name: String) -> Self {
-        self.name = name;
-        self
-    }
-}
-
-impl<Driver: DriverT> Default for IfaceConfig<Driver> {
-    fn default() -> Self {
-        Self {
-            name: "".into(),
-            platform: Driver::PlatformInterfaceConfig::default(),
-        }
-    }
-}
-
-impl<Driver: DriverT> IfaceConfig<Driver> {
-    pub fn set_platform<F>(self, f: F) -> IfaceConfig<Driver>
+impl<P: PlatformIfConfigT + Clone> IfConfigBuilder<P> {
+    pub fn platform<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn(Driver::PlatformInterfaceConfig) -> Driver::PlatformInterfaceConfig,
+        F: Fn(P::Builder) -> P,
     {
-        let mut new_self = self;
-        new_self.platform = f(new_self.platform);
-        new_self
-    }
-
-    pub fn platform(&self) -> &Driver::PlatformInterfaceConfig {
-        &self.platform
+        let builder = P::Builder::default();
+        self.platform = Some(f(builder));
+        self
     }
 }

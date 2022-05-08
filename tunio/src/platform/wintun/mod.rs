@@ -7,7 +7,7 @@ mod logger;
 mod queue;
 mod session;
 
-pub use config::PlatformInterfaceConfig;
+pub use config::{PlatformIfConfig, PlatformIfConfigBuilder};
 pub use driver::Driver;
 pub use interface::Interface;
 pub use queue::Queue;

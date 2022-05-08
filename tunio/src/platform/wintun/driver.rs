@@ -1,6 +1,6 @@
-use crate::config::IfaceConfig;
+use crate::config::IfConfig;
 use crate::error::Error;
-use crate::platform::wintun::config::PlatformInterfaceConfig;
+use crate::platform::wintun::config::PlatformIfConfig;
 use crate::platform::wintun::interface::Interface;
 use crate::platform::wintun::logger::wintun_logger;
 use crate::traits::DriverT;
@@ -12,8 +12,8 @@ pub struct Driver {
 }
 
 impl DriverT for Driver {
-    type PlatformInterface = Interface;
-    type PlatformInterfaceConfig = PlatformInterfaceConfig;
+    type PlatformIf = Interface;
+    type PlatformIfConfig = PlatformIfConfig;
 
     fn new() -> Result<Self, Error> {
         let library_name = "wintun".to_string();
@@ -34,8 +34,8 @@ impl DriverT for Driver {
 
     fn new_interface(
         &mut self,
-        config: IfaceConfig<Self>,
-    ) -> Result<Self::PlatformInterface, Error> {
+        config: IfConfig<Self::PlatformIfConfig>,
+    ) -> Result<Self::PlatformIf, Error> {
         Interface::new(self.wintun.clone(), config)
     }
 }

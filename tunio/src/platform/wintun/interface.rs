@@ -1,12 +1,12 @@
+use super::handle::HandleWrapper;
+use super::queue::Queue;
 use super::session::Session;
-use crate::config::IfaceConfig;
-use crate::platform::wintun::driver::Driver;
-use crate::platform::wintun::handle::HandleWrapper;
-use crate::platform::wintun::queue::Queue;
-use crate::traits::InterfaceT;
+use super::PlatformIfConfig;
+use crate::config::IfConfig;
+use crate::traits::{AsyncQueueT, InterfaceT, QueueT};
 use crate::Error;
 use log::error;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Read, Write};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
@@ -24,15 +24,18 @@ pub struct Interface {
     wintun: Arc<wintun_sys::wintun>,
     handle: HandleWrapper<WINTUN_ADAPTER_HANDLE>,
     queue: Option<Queue>,
-    config: IfaceConfig<Driver>,
+    config: IfConfig<PlatformIfConfig>,
 }
+
+impl QueueT for Interface {}
+impl AsyncQueueT for Interface {}
 
 impl InterfaceT for Interface {
     fn up(&mut self) -> Result<(), Error> {
         let session = Session::new(
             self.handle.0,
             self.wintun.clone(),
-            self.config.platform().capacity(),
+            self.config.platform.capacity,
         )?;
 
         self.queue = Some(Queue::new(session));
@@ -62,12 +65,12 @@ impl InterfaceT for Interface {
 impl Interface {
     pub(crate) fn new(
         wintun: Arc<wintun_sys::wintun>,
-        params: IfaceConfig<Driver>,
+        params: IfConfig<PlatformIfConfig>,
     ) -> Result<Self, Error> {
-        let _ = Session::validate_capacity(params.platform().capacity());
+        let _ = Session::validate_capacity(params.platform.capacity);
 
         let [name_u16, description_u16] =
-            [&*params.name, &*params.platform.description()].map(encode_name);
+            [&*params.name, &*params.platform.description].map(encode_name);
         let (name_u16, description_u16) = (name_u16?, description_u16?);
 
         let guid = GUID::new().unwrap();
@@ -124,6 +127,31 @@ fn encode_name(string: &str) -> Result<U16CString, Error> {
     match result.len() {
         0..=MAX_NAME => Ok(result),
         l => Err(Error::InterfaceNameTooLong(l, MAX_NAME)),
+    }
+}
+
+impl Read for Interface {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match &mut self.queue {
+            Some(queue) => queue.read(buf),
+            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+        }
+    }
+}
+
+impl Write for Interface {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match &mut self.queue {
+            Some(queue) => queue.write(buf),
+            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match &mut self.queue {
+            Some(queue) => queue.flush(),
+            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+        }
     }
 }
 

@@ -1,29 +1,13 @@
-use crate::traits::PlatformIfaceConfigT;
+use crate::traits::PlatformIfConfigT;
+use derive_builder::Builder;
 
-#[derive(Clone)]
-pub struct PlatformInterfaceConfig {
-    capacity: u32,
-    description: String,
+#[derive(Builder, Clone)]
+pub struct PlatformIfConfig {
+    pub(crate) capacity: u32,
+    pub(crate) description: String,
 }
 
-impl PlatformInterfaceConfig {
-    pub fn capacity(&self) -> u32 {
-        self.capacity
-    }
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-    pub fn set_capacity(mut self, capacity: u32) -> Self {
-        self.capacity = capacity;
-        self
-    }
-    pub fn set_description(mut self, description: String) -> Self {
-        self.description = description;
-        self
-    }
-}
-
-impl Default for PlatformInterfaceConfig {
+impl Default for PlatformIfConfig {
     fn default() -> Self {
         Self {
             capacity: 2 * 1024 * 1024,
@@ -32,4 +16,6 @@ impl Default for PlatformInterfaceConfig {
     }
 }
 
-impl PlatformIfaceConfigT for PlatformInterfaceConfig {}
+impl PlatformIfConfigT for PlatformIfConfig {
+    type Builder = PlatformIfConfigBuilder;
+}

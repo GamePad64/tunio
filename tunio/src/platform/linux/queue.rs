@@ -1,5 +1,6 @@
-use crate::traits::QueueT;
+use crate::traits::{AsyncQueueT, QueueT};
 use crate::Error;
+use delegate::delegate;
 use futures::ready;
 use libc::IFF_TUN;
 use netconfig::sys::posix::ifreq::ifreq;
@@ -12,7 +13,8 @@ use std::{fs, io};
 use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-// impl QueueT for Queue;
+impl QueueT for Queue {}
+impl AsyncQueueT for Queue {}
 
 mod ioctls {
     nix::ioctl_write_int!(tunsetiff, b'T', 202);
@@ -43,6 +45,23 @@ impl Queue {
         Ok(Queue {
             tun_device: AsyncFd::new(tun_device)?,
         })
+    }
+}
+
+impl Read for Queue {
+    delegate! {
+        to self.tun_device.get_ref() {
+            fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error>;
+        }
+    }
+}
+
+impl Write for Queue {
+    delegate! {
+        to self.tun_device.get_ref() {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
+            fn flush(&mut self) -> io::Result<()>;
+        }
     }
 }
 

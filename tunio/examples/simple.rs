@@ -2,9 +2,6 @@ use etherparse::PacketBuilder;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
-use tunio::config::IfaceConfig;
-#[cfg(target_os = "windows")]
-use tunio::platform::wintun::PlatformInterfaceConfig;
 use tunio::traits::{DriverT, InterfaceT};
 use tunio::DefaultDriver;
 
@@ -13,12 +10,11 @@ async fn main() {
     env_logger::init();
     let mut driver = DefaultDriver::new().unwrap();
 
-    let interface_config = IfaceConfig::default().set_name("name".into());
-
+    let mut interface_config = DefaultDriver::if_config_builder();
+    interface_config.name("name".into());
     #[cfg(target_os = "windows")]
-    let interface_config = interface_config.set_platform(|config: PlatformInterfaceConfig| {
-        config.set_description("description".into())
-    });
+    interface_config.platform(|mut b| b.description("description".into()).build().unwrap());
+    let interface_config = interface_config.build().unwrap();
 
     let mut interface = driver.new_interface_up(interface_config).unwrap();
     let iff = interface.handle();
