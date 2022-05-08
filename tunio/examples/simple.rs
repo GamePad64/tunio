@@ -1,18 +1,11 @@
 use etherparse::PacketBuilder;
-use log::debug;
-use netconfig::linux::handle::InterfaceHandleExt;
-use netconfig::InterfaceHandleCommonT;
-use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr};
-use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tunio::config::IfaceConfig;
 #[cfg(target_os = "windows")]
 use tunio::platform::wintun::PlatformInterfaceConfig;
-use tunio::traits::DriverT;
-use tunio::{DefaultDriver, DefaultInterface};
+use tunio::traits::{DriverT, InterfaceT};
+use tunio::DefaultDriver;
 
 #[tokio::main]
 async fn main() {
@@ -27,10 +20,7 @@ async fn main() {
     });
 
     let interface = driver.new_interface_up(interface_config).unwrap();
-
-    // let luid = interface.get_luid();
-    // let mut iff = netconfig::InterfaceHandle::from_luid(luid);
-    let mut iff = netconfig::InterfaceHandle::from_name(interface.name());
+    let iff = interface.handle();
 
     iff.add_ip("18.3.5.6/24".parse().unwrap());
     iff.add_ip("20.3.5.6/24".parse().unwrap());

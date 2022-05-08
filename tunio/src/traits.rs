@@ -30,6 +30,7 @@ pub trait DriverT: Sized {
 pub trait InterfaceT: Sized {
     fn up(&mut self) -> Result<(), Error>;
     fn down(&mut self) -> Result<(), Error>;
+    fn handle(&self) -> netconfig::InterfaceHandle;
 }
 
 pub trait QueueT: Read + Write {}

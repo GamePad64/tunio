@@ -5,11 +5,15 @@ use crate::platform::wintun::queue::Queue;
 use crate::traits::InterfaceT;
 use crate::Error;
 use log::error;
+use std::io::ErrorKind;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use std::{io, ptr};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use widestring::U16CString;
 use windows::core::GUID;
-use windows::Win32::NetworkManagement::IpHelper::{ConvertInterfaceLuidToGuid, NET_LUID_LH};
+use windows::Win32::NetworkManagement::IpHelper::{ConvertInterfaceLuidToIndex, NET_LUID_LH};
 use wintun_sys;
 use wintun_sys::{WINTUN_ADAPTER_HANDLE, WINTUN_MIN_RING_CAPACITY};
 
@@ -18,7 +22,7 @@ const MAX_NAME: usize = 255;
 pub struct Interface {
     wintun: Arc<wintun_sys::wintun>,
     handle: HandleWrapper<WINTUN_ADAPTER_HANDLE>,
-    stream: Option<Queue>,
+    queue: Option<Queue>,
 }
 
 impl InterfaceT for Interface {
@@ -35,18 +39,27 @@ impl InterfaceT for Interface {
             return Err(Error::from(err));
         }
 
-        self.stream = Some(Queue::new(HandleWrapper(handle), self.wintun.clone()));
+        self.queue = Some(Queue::new(HandleWrapper(handle), self.wintun.clone()));
 
         Ok(())
     }
 
     fn down(&mut self) -> Result<(), Error> {
-        if self.stream.is_some() {
-            let _ = self.stream.take();
+        if self.queue.is_some() {
+            let _ = self.queue.take();
             Ok(())
         } else {
             Err(Error::InterfaceStateInvalid)
         }
+    }
+
+    fn handle(&self) -> netconfig::InterfaceHandle {
+        let mut index = 0;
+        unsafe {
+            ConvertInterfaceLuidToIndex(&self.luid(), &mut index).unwrap();
+        }
+
+        netconfig::InterfaceHandle::try_from_index(index).unwrap()
     }
 }
 
@@ -84,11 +97,11 @@ impl Interface {
         Ok(Self {
             wintun,
             handle: HandleWrapper(adapter_handle),
-            stream: None,
+            queue: None,
         })
     }
 
-    pub fn get_luid(&self) -> NET_LUID_LH {
+    fn luid(&self) -> NET_LUID_LH {
         let mut luid_buf: wintun_sys::NET_LUID = unsafe { std::mem::zeroed() };
         unsafe {
             self.wintun
@@ -97,14 +110,6 @@ impl Interface {
         NET_LUID_LH {
             Value: unsafe { luid_buf.Value },
         }
-    }
-
-    pub fn get_guid(&self) -> GUID {
-        let mut guid = GUID::zeroed();
-        unsafe {
-            ConvertInterfaceLuidToGuid(&self.get_luid(), &mut guid as _).unwrap();
-        }
-        guid
     }
 }
 
@@ -119,6 +124,52 @@ fn encode_name(string: &str) -> Result<U16CString, Error> {
     let result = U16CString::from_str(string).map_err(|_| Error::InterfaceNameUnicodeError)?;
     match result.len() {
         0..=MAX_NAME => Ok(result),
-        l => Err(Error::InterfaceNameTooLong(l)),
+        l => Err(Error::InterfaceNameTooLong(l, MAX_NAME)),
+    }
+}
+
+impl AsyncRead for Interface {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        match &mut self.queue {
+            Some(queue) => Pin::new(queue).poll_read(cx, buf),
+            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+        }
+    }
+}
+
+impl AsyncWrite for Interface {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        match &mut self.queue {
+            Some(queue) => Pin::new(queue).poll_write(cx, buf),
+            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+        }
+    }
+
+    fn poll_flush(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), std::io::Error>> {
+        match &mut self.queue {
+            Some(queue) => Pin::new(queue).poll_flush(cx),
+            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+        }
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), std::io::Error>> {
+        match &mut self.queue {
+            Some(queue) => Pin::new(queue).poll_shutdown(cx),
+            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+        }
     }
 }

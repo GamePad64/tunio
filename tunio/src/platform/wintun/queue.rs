@@ -7,7 +7,6 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
 use std::{io, thread};
-#[cfg(feature = "async-tokio")]
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
 use windows::{
@@ -29,7 +28,7 @@ pub struct Queue {
     wintun: Arc<wintun_sys::wintun>,
 
     // Reader
-    cmd_event: Arc<SafeEvent>,
+    shutdown_event: Arc<SafeEvent>,
 
     reader_thread: Option<thread::JoinHandle<()>>,
     packet_rx: crossbeam_channel::Receiver<Bytes>,
@@ -37,9 +36,8 @@ pub struct Queue {
     reader_wakers_tx: crossbeam_channel::Sender<Waker>,
 
     // Writer
-    write_status_tx: crossbeam_channel::Sender<std::io::Result<usize>>,
-    write_status_rx: crossbeam_channel::Receiver<std::io::Result<usize>>,
-    #[cfg(feature = "async-tokio")]
+    write_status_tx: crossbeam_channel::Sender<io::Result<usize>>,
+    write_status_rx: crossbeam_channel::Receiver<io::Result<usize>>,
     packet_writer_thread: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -50,11 +48,11 @@ impl Queue {
         handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
         wintun: Arc<wintun_sys::wintun>,
     ) -> Self {
-        let cmd_event = Arc::new(SafeEvent::new());
+        let shutdown_event = Arc::new(SafeEvent::new());
 
         let inner_handle = handle.clone();
         let inner_wintun = wintun.clone();
-        let inner_cmd_event = cmd_event.clone();
+        let inner_shutdown_event = shutdown_event.clone();
 
         let (packet_tx, packet_rx) = crossbeam_channel::bounded(16);
         let (reader_wakers_tx, reader_wakers_rx) = crossbeam_channel::unbounded();
@@ -63,7 +61,7 @@ impl Queue {
             Self::reader_thread(
                 inner_wintun,
                 inner_handle,
-                inner_cmd_event,
+                inner_shutdown_event,
                 packet_tx,
                 reader_wakers_rx,
             )
@@ -74,13 +72,12 @@ impl Queue {
         Queue {
             session_handle: handle,
             wintun,
-            cmd_event,
+            shutdown_event,
             packet_rx,
             reader_thread,
             reader_wakers_tx,
             write_status_tx,
             write_status_rx,
-            #[cfg(feature = "async-tokio")]
             packet_writer_thread: None,
         }
     }
@@ -93,15 +90,9 @@ impl Queue {
         wakers_rx: crossbeam_channel::Receiver<Waker>,
     ) {
         let read_event = HANDLE(unsafe { wintun.WintunGetReadWaitEvent(handle.0) as isize });
-        let mut buffer = BytesMut::new();
+        let mut buffer = BytesMut::new(); // TODO: use with_capacity with full ring capacity
 
-        let mut shutdown = false;
-
-        loop {
-            if shutdown {
-                break;
-            }
-
+        'reader: loop {
             let mut packet_len: DWORD = 0;
             let packet = unsafe { wintun.WintunReceivePacket(handle.0, &mut packet_len) };
 
@@ -114,7 +105,9 @@ impl Queue {
                 packet_tx
                     .send(buffer.split().freeze())
                     .expect("Queue object is ok");
-                while let Ok(waker) = wakers_rx.try_recv() {
+
+                // TODO: use single value channel or protected variable
+                if let Some(waker) = wakers_rx.try_iter().last() {
                     waker.wake();
                 }
             } else {
@@ -125,7 +118,7 @@ impl Queue {
                     };
                     match result {
                         // Command
-                        WAIT_OBJECT_0 => shutdown = true,
+                        WAIT_OBJECT_0 => break 'reader,
                         // Ready for read
                         WAIT_OBJECT_1 => continue,
 
@@ -138,11 +131,6 @@ impl Queue {
         }
     }
 
-    fn shutdown_reader(&mut self) {
-        self.cmd_event.set_event();
-        let _ = self.reader_thread.take().unwrap().join();
-    }
-
     fn do_write(
         buf: &[u8],
         wintun: Arc<wintun_sys::wintun>,
@@ -153,7 +141,7 @@ impl Queue {
             // Copy buffer to allocated packet
             unsafe {
                 packet.copy_from_nonoverlapping(buf.as_ptr(), buf.len());
-                wintun.WintunSendPacket(session_handle.0, packet);
+                wintun.WintunSendPacket(session_handle.0, packet); // Deallocates packet
             }
             Ok(buf.len())
         } else {
@@ -178,7 +166,7 @@ impl Read for Queue {
                     warn!("Data is truncated: {} > {}", buf.len(), bytes_to_copy);
                 }
                 buf.copy_from_slice(&message[..bytes_to_copy]);
-                Ok(message.len())
+                Ok(bytes_to_copy)
             }
         }
     }
@@ -196,20 +184,23 @@ impl Write for Queue {
 
 impl Drop for Queue {
     fn drop(&mut self) {
-        self.shutdown_reader();
+        // Set reader thread to stop eventually
+        self.shutdown_event.set_event();
+        // Join thread
+        let _ = self.reader_thread.take().unwrap().join();
+
         unsafe {
             self.wintun.WintunEndSession(self.session_handle.0);
         }
     }
 }
 
-#[cfg(feature = "async-tokio")]
 impl AsyncRead for Queue {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
-    ) -> Poll<std::io::Result<()>> {
+    ) -> Poll<io::Result<()>> {
         let self_mut = self.get_mut();
         let mut b = vec![0; buf.remaining()];
 
@@ -230,7 +221,6 @@ impl AsyncRead for Queue {
     }
 }
 
-#[cfg(feature = "async-tokio")]
 impl AsyncWrite for Queue {
     fn poll_write(
         self: Pin<&mut Self>,
@@ -259,14 +249,12 @@ impl AsyncWrite for Queue {
         }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        // Not implemented by driver
         Poll::Ready(Ok(()))
     }
 
-    fn poll_shutdown(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<(), std::io::Error>> {
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
         Poll::Ready(Ok(()))
     }
 }

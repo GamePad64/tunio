@@ -1,12 +1,9 @@
-mod ifreq;
 pub mod interface;
 mod queue;
 
 use crate::config::IfaceConfig;
 use crate::traits::{DriverT, PlatformIfaceConfigT};
 use crate::Error;
-use std::ffi::CString;
-use std::sync::Arc;
 
 pub use interface::LinuxInterface;
 

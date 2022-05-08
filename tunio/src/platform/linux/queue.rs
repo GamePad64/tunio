@@ -1,8 +1,8 @@
-use crate::platform::linux::ifreq::{ifreq, tunsetiff};
 use crate::traits::QueueT;
 use crate::Error;
 use futures::ready;
 use libc::IFF_TUN;
+use netconfig::sys::posix::ifreq::ifreq;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::io::AsRawFd;
@@ -13,6 +13,13 @@ use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 // impl QueueT for Queue;
+
+mod ioctls {
+    nix::ioctl_write_int!(tunsetiff, b'T', 202);
+    nix::ioctl_write_int!(tunsetpersist, b'T', 203);
+    nix::ioctl_write_int!(tunsetowner, b'T', 204);
+    nix::ioctl_write_int!(tunsetgroup, b'T', 206);
+}
 
 pub struct Queue {
     tun_device: AsyncFd<fs::File>,
@@ -31,7 +38,7 @@ impl Queue {
         let mut req = ifreq::new(name);
         req.ifr_ifru.ifru_flags = init_flags as _;
 
-        unsafe { tunsetiff(tun_device.as_raw_fd(), &req as *const _ as _) }.unwrap();
+        unsafe { ioctls::tunsetiff(tun_device.as_raw_fd(), &req as *const _ as _) }.unwrap();
 
         Ok(Queue {
             tun_device: AsyncFd::new(tun_device)?,

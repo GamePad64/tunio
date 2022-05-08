@@ -1,24 +1,15 @@
 use crate::config::IfaceConfig;
-use crate::platform::linux::ifreq::{ifreq, siocgifflags, siocsifflags, tunsetiff, IfName};
 use crate::platform::linux::queue::Queue;
 use crate::platform::linux::Driver;
 use crate::traits::InterfaceT;
 use crate::Error;
-use futures::ready;
-use libc::IFF_TUN;
-use std::io::{Read, Write};
-use std::os::unix::fs::OpenOptionsExt;
-use std::os::unix::io::{AsRawFd, RawFd};
+use netconfig::sys::InterfaceHandleExt;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::{fs, io, net};
-use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 pub struct LinuxInterface {
-    socket: net::UdpSocket,
     name: String,
-
     queue: Queue,
 }
 
@@ -28,7 +19,6 @@ impl LinuxInterface {
 
         Ok(Self {
             queue,
-            socket: net::UdpSocket::bind("[::1]:0")?,
             name: params.name,
         })
     }
@@ -40,23 +30,48 @@ impl LinuxInterface {
 
 impl InterfaceT for LinuxInterface {
     fn up(&mut self) -> Result<(), Error> {
-        self.set_flags(libc::IFF_UP | libc::IFF_RUNNING)?;
-
-        Ok(())
+        Ok(self.handle().set_up(true)?)
     }
 
     fn down(&mut self) -> Result<(), Error> {
-        todo!()
+        Ok(self.handle().set_up(false)?)
+    }
+
+    fn handle(&self) -> netconfig::InterfaceHandle {
+        netconfig::InterfaceHandle::try_from_name(self.name()).unwrap()
     }
 }
 
-impl LinuxInterface {
-    fn set_flags(&mut self, flags: libc::c_int) -> io::Result<()> {
-        let mut req = ifreq::new(&*self.name);
-        // req.ifr_ifru.ifru_flags = (self.init_flags | flags) as _;
+impl AsyncRead for LinuxInterface {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        Pin::new(&mut self.queue).poll_read(cx, buf)
+    }
+}
 
-        unsafe { siocsifflags(self.socket.as_raw_fd(), &req) }?;
+impl AsyncWrite for LinuxInterface {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        Pin::new(&mut self.queue).poll_write(cx, buf)
+    }
 
-        Ok(())
+    fn poll_flush(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), std::io::Error>> {
+        Pin::new(&mut self.queue).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), std::io::Error>> {
+        Pin::new(&mut self.queue).poll_flush(cx)
     }
 }
