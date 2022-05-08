@@ -5,9 +5,16 @@ pub enum Error {
     Io(io::Error),
     InterfaceNameUnicodeError,
     InterfaceNameTooLong(usize, usize),
-    LibraryNotLoaded { reason: String },
+    LibraryNotLoaded {
+        reason: String,
+    },
     InterfaceStateInvalid,
     NetConfigError(netconfig::Error),
+    InvalidConfigValue {
+        name: String,
+        value: String,
+        reason: String,
+    },
 }
 
 impl From<io::Error> for Error {

@@ -1,13 +1,21 @@
 use crate::traits::DriverT;
-use getset::{FluentSetters, Getters};
 
-#[derive(Getters, FluentSetters)]
-#[getset(get = "pub", set_fluent = "pub")]
 pub struct IfaceConfig<Driver: DriverT> {
     pub(crate) name: String,
 
-    #[getset(skip)]
     pub(crate) platform: Driver::PlatformInterfaceConfig,
+}
+
+impl<Driver: DriverT> IfaceConfig<Driver> {}
+
+impl<Driver: DriverT> IfaceConfig<Driver> {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn set_name(mut self, name: String) -> Self {
+        self.name = name;
+        self
+    }
 }
 
 impl<Driver: DriverT> Default for IfaceConfig<Driver> {

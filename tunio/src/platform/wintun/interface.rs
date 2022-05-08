@@ -16,7 +16,7 @@ use widestring::U16CString;
 use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::{ConvertInterfaceLuidToIndex, NET_LUID_LH};
 use wintun_sys;
-use wintun_sys::{WINTUN_ADAPTER_HANDLE, WINTUN_MIN_RING_CAPACITY};
+use wintun_sys::WINTUN_ADAPTER_HANDLE;
 
 const MAX_NAME: usize = 255;
 
@@ -24,15 +24,16 @@ pub struct Interface {
     wintun: Arc<wintun_sys::wintun>,
     handle: HandleWrapper<WINTUN_ADAPTER_HANDLE>,
     queue: Option<Queue>,
+    config: IfaceConfig<Driver>,
 }
 
 impl InterfaceT for Interface {
     fn up(&mut self) -> Result<(), Error> {
-        let capacity = WINTUN_MIN_RING_CAPACITY * 16;
-        // let range = MIN_RING_CAPACITY..=MAX_RING_CAPACITY;
-        // if !range.contains(&capacity) {}
-
-        let session = Session::new(self.handle.0, self.wintun.clone(), capacity)?;
+        let session = Session::new(
+            self.handle.0,
+            self.wintun.clone(),
+            self.config.platform().capacity(),
+        )?;
 
         self.queue = Some(Queue::new(session));
 
@@ -62,9 +63,11 @@ impl Interface {
     pub(crate) fn new(
         wintun: Arc<wintun_sys::wintun>,
         params: IfaceConfig<Driver>,
-    ) -> Result<Self, crate::Error> {
+    ) -> Result<Self, Error> {
+        let _ = Session::validate_capacity(params.platform().capacity());
+
         let [name_u16, description_u16] =
-            [&*params.name, &*params.platform.description].map(encode_name);
+            [&*params.name, &*params.platform.description()].map(encode_name);
         let (name_u16, description_u16) = (name_u16?, description_u16?);
 
         let guid = GUID::new().unwrap();
@@ -93,6 +96,7 @@ impl Interface {
             wintun,
             handle: HandleWrapper(adapter_handle),
             queue: None,
+            config: params,
         })
     }
 

@@ -1,6 +1,7 @@
 use etherparse::PacketBuilder;
 use std::thread::sleep;
 use std::time::Duration;
+use tokio::io::AsyncReadExt;
 use tunio::config::IfaceConfig;
 #[cfg(target_os = "windows")]
 use tunio::platform::wintun::PlatformInterfaceConfig;
@@ -19,7 +20,7 @@ async fn main() {
         config.set_description("description".into())
     });
 
-    let interface = driver.new_interface_up(interface_config).unwrap();
+    let mut interface = driver.new_interface_up(interface_config).unwrap();
     let iff = interface.handle();
 
     iff.add_ip("18.3.5.6/24".parse().unwrap());
@@ -44,9 +45,11 @@ async fn main() {
     }
 
     let mut buf = vec![0u8; 4096];
-    // while let Ok(n) = interface.read(buf.as_mut_slice()).await {
-    //     println!("{buf:x?}");
-    // }
+    while let Ok(n) = interface.read(buf.as_mut_slice()).await {
+        buf.truncate(n);
+        println!("{buf:x?}");
+        buf.resize(4096, 0u8);
+    }
 
     tokio::signal::ctrl_c().await;
 }

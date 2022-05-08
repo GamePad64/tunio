@@ -9,13 +9,12 @@ edition = "2021"
 tokio = { version = "1.17.0", features = ["rt", "net"] }
 log = "0.4.16"
 futures = "0.3.21"
-getset = { git = "https://github.com/GamePad64/getset", branch = "fluent" }
 netconfig = "0.1.4"
+derive_builder = "0.11.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 widestring = "0.5.1"
 bytes = "1.1.0"
-crossbeam-channel = "0.5.4"
 wintun-sys = { path = "../wintun-sys" }
 windows = { version = "0.35.0", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_System_WindowsProgramming", "Win32_NetworkManagement_IpHelper"] }
 

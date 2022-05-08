@@ -9,7 +9,7 @@ pub use interface::LinuxInterface;
 
 pub struct Driver;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PlatformInterfaceConfig {}
 
 impl PlatformIfaceConfigT for PlatformInterfaceConfig {}

@@ -1,11 +1,15 @@
-use crate::platform::wintun::handle::HandleWrapper;
+use super::handle::HandleWrapper;
+use crate::Error;
 use bytes::BufMut;
 use log::error;
 use std::io;
 use std::io::{Read, Write};
 use std::sync::Arc;
-use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_NO_MORE_ITEMS, HANDLE};
-use wintun_sys::{DWORD, WINTUN_ADAPTER_HANDLE, WINTUN_SESSION_HANDLE};
+use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_NO_MORE_ITEMS, HANDLE, WIN32_ERROR};
+use wintun_sys::{
+    DWORD, WINTUN_ADAPTER_HANDLE, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY,
+    WINTUN_SESSION_HANDLE,
+};
 
 struct PacketReader {
     handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
@@ -61,13 +65,15 @@ impl Session {
         adapter_handle: WINTUN_ADAPTER_HANDLE,
         wintun: Arc<wintun_sys::wintun>,
         capacity: u32,
-    ) -> io::Result<Self> {
+    ) -> Result<Self, Error> {
+        let _ = Self::validate_capacity(capacity)?;
+
         let session_handle = unsafe { wintun.WintunStartSession(adapter_handle, capacity) };
 
         if session_handle.is_null() {
             let err = io::Error::last_os_error();
             error!("Failed to create session: {err}");
-            return Err(err);
+            return Err(err.into());
         }
 
         Ok(Self {
@@ -79,24 +85,40 @@ impl Session {
     pub fn read_event(&self) -> HANDLE {
         HANDLE(unsafe { self.wintun.WintunGetReadWaitEvent(self.handle.0) as isize })
     }
+
+    pub fn validate_capacity(capacity: u32) -> Result<(), Error> {
+        let range = WINTUN_MIN_RING_CAPACITY..=WINTUN_MAX_RING_CAPACITY;
+        if !range.contains(&capacity) || !capacity.is_power_of_two() {
+            return Err(Error::InvalidConfigValue {
+                name: "capacity".to_string(),
+                value: capacity.to_string(),
+                reason: format!(
+                    "must be power of 2 between {} and {}",
+                    WINTUN_MIN_RING_CAPACITY, WINTUN_MAX_RING_CAPACITY
+                ),
+            });
+        }
+        Ok(())
+    }
+
+    fn map_error(err: io::Error, win32_error: WIN32_ERROR) -> io::Error {
+        if let Some(os_error) = err.raw_os_error() {
+            if os_error == win32_error.0 as _ {
+                return io::Error::from(io::ErrorKind::WouldBlock);
+            }
+        }
+        err
+    }
 }
 
 impl Read for Session {
     fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        match PacketReader::read(self.handle.clone(), self.wintun.clone()) {
-            Ok(packet) => {
-                let packet_slice = packet.as_slice();
-                buf.put(packet_slice);
-                Ok(packet_slice.len())
-            }
-            Err(err) => {
-                if err.raw_os_error().unwrap() == ERROR_NO_MORE_ITEMS.0 as _ {
-                    Err(io::Error::from(io::ErrorKind::WouldBlock))
-                } else {
-                    Err(err)
-                }
-            }
-        }
+        let packet = PacketReader::read(self.handle.clone(), self.wintun.clone())
+            .map_err(|e| Self::map_error(e, ERROR_NO_MORE_ITEMS))?;
+
+        let packet_slice = packet.as_slice();
+        buf.put(packet_slice);
+        Ok(packet_slice.len())
     }
 }
 
@@ -114,17 +136,15 @@ impl Write for Session {
             }
             Ok(buf.len())
         } else {
-            let err = io::Error::last_os_error();
-            if err.raw_os_error().unwrap() == ERROR_BUFFER_OVERFLOW.0 as _ {
-                Err(io::Error::from(io::ErrorKind::WouldBlock))
-            } else {
-                Err(err)
-            }
+            Err(Self::map_error(
+                io::Error::last_os_error(),
+                ERROR_BUFFER_OVERFLOW,
+            ))
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        todo!()
+        Ok(())
     }
 }
 

@@ -2,7 +2,7 @@ use crate::config::IfaceConfig;
 use crate::Error;
 use std::io::{Read, Write};
 
-pub trait PlatformIfaceConfigT: Default {}
+pub trait PlatformIfaceConfigT: Default + Clone {}
 
 pub trait DriverT: Sized {
     type PlatformInterface: InterfaceT;
