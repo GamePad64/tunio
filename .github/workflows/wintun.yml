@@ -19,7 +19,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --all-features
+        args: -p wintun-sys --release --all-features
     - name: Check if can be packaged
       uses: actions-rs/cargo@v1
       with:
