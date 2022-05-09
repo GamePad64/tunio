@@ -3,14 +3,11 @@ use super::wrappers::Session;
 use super::PlatformIfConfig;
 use super::Queue;
 use crate::config::{IfConfig, Layer};
-use crate::traits::{AsyncQueueT, InterfaceT, QueueT};
+use crate::traits::{InterfaceT, QueueT};
 use crate::Error;
 use std::io;
 use std::io::{ErrorKind, Read, Write};
-use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::ConvertInterfaceLuidToIndex;
 use wintun_sys;
@@ -23,7 +20,6 @@ pub struct Interface {
 }
 
 impl QueueT for Interface {}
-impl AsyncQueueT for Interface {}
 
 impl InterfaceT for Interface {
     fn up(&mut self) -> Result<(), Error> {
@@ -105,48 +101,60 @@ impl Write for Interface {
     }
 }
 
-impl AsyncRead for Interface {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<std::io::Result<()>> {
-        match &mut self.queue {
-            Some(queue) => Pin::new(queue).poll_read(cx, buf),
-            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-        }
-    }
-}
+#[cfg(feature = "async-tokio")]
+mod async_tokio {
+    use super::Interface;
+    use crate::traits::AsyncQueueT;
+    use std::io::ErrorKind;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-impl AsyncWrite for Interface {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        match &mut self.queue {
-            Some(queue) => Pin::new(queue).poll_write(cx, buf),
-            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-        }
-    }
+    impl AsyncQueueT for Interface {}
 
-    fn poll_flush(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<(), std::io::Error>> {
-        match &mut self.queue {
-            Some(queue) => Pin::new(queue).poll_flush(cx),
-            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+    impl AsyncRead for Interface {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            match &mut self.queue {
+                Some(queue) => Pin::new(queue).poll_read(cx, buf),
+                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+            }
         }
     }
 
-    fn poll_shutdown(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<(), std::io::Error>> {
-        match &mut self.queue {
-            Some(queue) => Pin::new(queue).poll_shutdown(cx),
-            None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+    impl AsyncWrite for Interface {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<Result<usize, std::io::Error>> {
+            match &mut self.queue {
+                Some(queue) => Pin::new(queue).poll_write(cx, buf),
+                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+            }
+        }
+
+        fn poll_flush(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+        ) -> Poll<Result<(), std::io::Error>> {
+            match &mut self.queue {
+                Some(queue) => Pin::new(queue).poll_flush(cx),
+                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+            }
+        }
+
+        fn poll_shutdown(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+        ) -> Poll<Result<(), std::io::Error>> {
+            match &mut self.queue {
+                Some(queue) => Pin::new(queue).poll_shutdown(cx),
+                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
+            }
         }
     }
 }

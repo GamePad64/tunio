@@ -1,36 +1,20 @@
 use super::event::SafeEvent;
 use super::wrappers::Session;
-use crate::traits::{AsyncQueueT, QueueT};
+use crate::traits::QueueT;
 use std::io;
-use std::io::{ErrorKind, Read, Write};
-use std::pin::Pin;
+use std::io::{Read, Write};
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::task::{Context, Poll, Waker};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use windows::{
-    Win32::System::Threading::{WaitForMultipleObjects, WAIT_ABANDONED_0, WAIT_OBJECT_0},
-    Win32::System::WindowsProgramming::INFINITE,
-};
 
 impl QueueT for Queue {}
-impl AsyncQueueT for Queue {}
-
-#[derive(Default)]
-struct DataReadinessHandler {
-    wait_thread: Option<tokio::task::JoinHandle<()>>,
-    waker: Option<Waker>,
-}
 
 pub struct Queue {
     session: Arc<Mutex<Session>>,
 
     shutdown_event: Arc<SafeEvent>,
-    data_ready: Arc<Mutex<DataReadinessHandler>>,
+    #[cfg(feature = "async-tokio")]
+    data_ready: Arc<Mutex<async_tokio::DataReadinessHandler>>,
 }
-
-const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
-const WAIT_ABANDONED_1: u32 = WAIT_ABANDONED_0 + 1;
 
 impl Queue {
     pub(crate) fn new(session: Session) -> Self {
@@ -38,8 +22,57 @@ impl Queue {
             session: Arc::new(Mutex::new(session)),
             // Manual reset, because we use this event once and it must fire on all threads
             shutdown_event: Arc::new(SafeEvent::new(true, false)),
+            #[cfg(feature = "async-tokio")]
             data_ready: Default::default(),
         }
+    }
+}
+
+impl Read for Queue {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.session.lock().unwrap().read(buf)
+    }
+}
+
+impl Write for Queue {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.session.lock().unwrap().write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.session.lock().unwrap().flush()
+    }
+}
+
+impl Drop for Queue {
+    fn drop(&mut self) {
+        self.shutdown_event.set_event();
+    }
+}
+
+#[cfg(feature = "async-tokio")]
+mod async_tokio {
+    use super::Queue;
+    use crate::platform::wintun::event::SafeEvent;
+    use crate::platform::wintun::wrappers::Session;
+    use std::io;
+    use std::io::{Read, Write};
+    use std::pin::Pin;
+    use std::sync::{Arc, Mutex};
+    use std::task::{Context, Poll, Waker};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use windows::{
+        Win32::System::Threading::{WaitForMultipleObjects, WAIT_ABANDONED_0, WAIT_OBJECT_0},
+        Win32::System::WindowsProgramming::INFINITE,
+    };
+
+    const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
+    const WAIT_ABANDONED_1: u32 = WAIT_ABANDONED_0 + 1;
+
+    #[derive(Default)]
+    pub(crate) struct DataReadinessHandler {
+        tokio_wait_thread: Option<tokio::task::JoinHandle<()>>,
+        waker: Option<Waker>,
     }
 
     fn wait_for_read(
@@ -73,97 +106,80 @@ impl Queue {
             }
         }
     }
-}
 
-impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.session.lock().unwrap().read(buf)
-    }
-}
-
-impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.session.lock().unwrap().write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.session.lock().unwrap().flush()
-    }
-}
-
-impl Drop for Queue {
-    fn drop(&mut self) {
-        self.shutdown_event.set_event();
-    }
-}
-
-impl AsyncRead for Queue {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        let mut data_ready = self.data_ready.lock().unwrap();
-        if (*data_ready).waker.is_some() {
-            // Waker has not been executed yet, so I/O is still not ready. Replace the waker.
-            (*data_ready).waker = Some(cx.waker().clone());
-            return Poll::Pending;
-        }
-
-        match self.session.lock().unwrap().read(buf.initialize_unfilled()) {
-            Ok(n) => {
-                // No need to schedule waker
-                buf.set_filled(n);
-                Poll::Ready(Ok(()))
+    impl AsyncRead for Queue {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let mut data_ready = self.data_ready.lock().unwrap();
+            if (*data_ready).waker.is_some() {
+                // Waker has not been executed yet, so I/O is still not ready. Replace the waker.
+                (*data_ready).waker = Some(cx.waker().clone());
+                return Poll::Pending;
             }
-            Err(e) => {
-                if e.kind() == ErrorKind::WouldBlock {
-                    // Schedule waker for execution later
-                    (*data_ready).waker = Some(cx.waker().clone());
 
-                    let inner_session = self.session.clone();
-                    let inner_shutdown_event = self.shutdown_event.clone();
-                    let inner_data_ready = self.data_ready.clone();
-
-                    (*data_ready).wait_thread = Some(tokio::task::spawn_blocking(move || {
-                        Self::wait_for_read(inner_session, inner_shutdown_event, inner_data_ready);
-                    }));
-                    Poll::Pending
-                } else {
-                    Poll::Ready(Err(e))
+            match self.session.lock().unwrap().read(buf.initialize_unfilled()) {
+                Ok(n) => {
+                    // No need to schedule waker
+                    buf.set_filled(n);
+                    Poll::Ready(Ok(()))
                 }
-            }
-        }
-    }
-}
+                Err(e) => {
+                    if e.kind() == io::ErrorKind::WouldBlock {
+                        // Schedule waker for execution later
+                        (*data_ready).waker = Some(cx.waker().clone());
 
-impl AsyncWrite for Queue {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<io::Result<usize>> {
-        match self.write(buf) {
-            Ok(len) => Poll::Ready(Ok(len)),
-            Err(err) => {
-                if err.kind() != ErrorKind::WouldBlock {
-                    Poll::Ready(Err(err))
-                } else {
-                    let waker = cx.waker().clone();
-                    let _ = tokio::task::spawn_local(async { waker.wake() });
-                    Poll::Pending
+                        let inner_session = self.session.clone();
+                        let inner_shutdown_event = self.shutdown_event.clone();
+                        let inner_data_ready = self.data_ready.clone();
+
+                        (*data_ready).tokio_wait_thread =
+                            Some(tokio::task::spawn_blocking(move || {
+                                wait_for_read(
+                                    inner_session,
+                                    inner_shutdown_event,
+                                    inner_data_ready,
+                                );
+                            }));
+                        Poll::Pending
+                    } else {
+                        Poll::Ready(Err(e))
+                    }
                 }
             }
         }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        // Not implemented by driver
-        Poll::Ready(Ok(()))
-    }
+    impl AsyncWrite for Queue {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            match self.write(buf) {
+                Ok(len) => Poll::Ready(Ok(len)),
+                Err(err) => {
+                    if err.kind() != io::ErrorKind::WouldBlock {
+                        Poll::Ready(Err(err))
+                    } else {
+                        let waker = cx.waker().clone();
+                        let _ = tokio::task::spawn_local(async { waker.wake() });
+                        Poll::Pending
+                    }
+                }
+            }
+        }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        // Not implemented by driver
-        Poll::Ready(Ok(()))
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            // Not implemented by driver
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            // Not implemented by driver
+            Poll::Ready(Ok(()))
+        }
     }
 }

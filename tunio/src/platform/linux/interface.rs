@@ -1,16 +1,13 @@
 use super::PlatformIfConfig;
 use crate::config::IfConfig;
 use crate::platform::linux::queue::Queue;
-use crate::traits::{AsyncQueueT, InterfaceT, QueueT};
+use crate::traits::{InterfaceT, QueueT};
 use crate::Error;
 use delegate::delegate;
 use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
 use std::io::{Read, Write};
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 pub struct Interface {
     name: String,
@@ -50,7 +47,6 @@ impl InterfaceT for Interface {
 }
 
 impl QueueT for Interface {}
-impl AsyncQueueT for Interface {}
 
 impl Read for Interface {
     delegate! {
@@ -69,33 +65,48 @@ impl Write for Interface {
     }
 }
 
-impl AsyncRead for Interface {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.queue).poll_read(cx, buf)
-    }
-}
+#[cfg(feature = "async-tokio")]
+mod async_tokio {
+    use super::Interface;
+    use crate::traits::AsyncQueueT;
+    use std::io;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-impl AsyncWrite for Interface {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, io::Error>> {
-        Pin::new(&mut self.queue).poll_write(cx, buf)
-    }
+    impl AsyncQueueT for Interface {}
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
-        Pin::new(&mut self.queue).poll_flush(cx)
+    impl AsyncRead for Interface {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            Pin::new(&mut self.queue).poll_read(cx, buf)
+        }
     }
 
-    fn poll_shutdown(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<(), io::Error>> {
-        Pin::new(&mut self.queue).poll_flush(cx)
+    impl AsyncWrite for Interface {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<Result<usize, io::Error>> {
+            Pin::new(&mut self.queue).poll_write(cx, buf)
+        }
+
+        fn poll_flush(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+        ) -> Poll<Result<(), io::Error>> {
+            Pin::new(&mut self.queue).poll_flush(cx)
+        }
+
+        fn poll_shutdown(
+            mut self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+        ) -> Poll<Result<(), io::Error>> {
+            Pin::new(&mut self.queue).poll_flush(cx)
+        }
     }
 }

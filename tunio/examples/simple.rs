@@ -37,17 +37,17 @@ async fn main() {
         let mut packet = Vec::with_capacity(builder.size(0));
         builder.write(&mut packet, &[]).unwrap();
 
-        interface.write(&*packet).await;
+        // interface.write(&*packet).await;
 
         sleep(Duration::from_secs(1));
     }
 
     let mut buf = vec![0u8; 4096];
-    while let Ok(n) = interface.read(buf.as_mut_slice()).await {
-        buf.truncate(n);
-        println!("{buf:x?}");
-        buf.resize(4096, 0u8);
-    }
+    // while let Ok(n) = interface.read(buf.as_mut_slice()).await {
+    //     buf.truncate(n);
+    //     println!("{buf:x?}");
+    //     buf.resize(4096, 0u8);
+    // }
 
     tokio::signal::ctrl_c().await;
 }
