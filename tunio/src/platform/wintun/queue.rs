@@ -1,10 +1,10 @@
 use super::event::SafeEvent;
 use super::wrappers::Session;
 use crate::traits::QueueT;
+use parking_lot::Mutex;
 use std::io;
 use std::io::{Read, Write};
 use std::sync::Arc;
-use std::sync::Mutex;
 
 impl QueueT for Queue {}
 
@@ -30,17 +30,17 @@ impl Queue {
 
 impl Read for Queue {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.session.lock().unwrap().read(buf)
+        self.session.lock().read(buf)
     }
 }
 
 impl Write for Queue {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.session.lock().unwrap().write(buf)
+        self.session.lock().write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.session.lock().unwrap().flush()
+        self.session.lock().flush()
     }
 }
 
@@ -54,13 +54,14 @@ impl Drop for Queue {
 mod async_tokio {
     use super::Queue;
     use crate::platform::wintun::event::SafeEvent;
-    use crate::platform::wintun::wrappers::Session;
+    use parking_lot::Mutex;
     use std::io;
     use std::io::{Read, Write};
     use std::pin::Pin;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use std::task::{Context, Poll, Waker};
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use windows::Win32::Foundation::HANDLE;
     use windows::{
         Win32::System::Threading::{WaitForMultipleObjects, WAIT_ABANDONED_0, WAIT_OBJECT_0},
         Win32::System::WindowsProgramming::INFINITE,
@@ -76,11 +77,10 @@ mod async_tokio {
     }
 
     fn wait_for_read(
-        session: Arc<Mutex<Session>>,
+        read_event: HANDLE,
         shutdown_event: Arc<SafeEvent>,
         data_ready: Arc<Mutex<DataReadinessHandler>>,
     ) {
-        let read_event = session.lock().unwrap().read_event();
         let result = unsafe {
             WaitForMultipleObjects(&[shutdown_event.handle(), read_event], false, INFINITE)
         };
@@ -89,7 +89,7 @@ mod async_tokio {
             WAIT_OBJECT_0 => {}
             // Ready for read
             WAIT_OBJECT_1 => {
-                let mut data_ready = data_ready.lock().unwrap();
+                let mut data_ready = data_ready.lock();
                 if let Some(waker) = (*data_ready).waker.take() {
                     waker.wake()
                 }
@@ -113,14 +113,15 @@ mod async_tokio {
             cx: &mut Context<'_>,
             buf: &mut ReadBuf<'_>,
         ) -> Poll<io::Result<()>> {
-            let mut data_ready = self.data_ready.lock().unwrap();
+            let mut data_ready = self.data_ready.lock();
             if (*data_ready).waker.is_some() {
                 // Waker has not been executed yet, so I/O is still not ready. Replace the waker.
                 (*data_ready).waker = Some(cx.waker().clone());
                 return Poll::Pending;
             }
 
-            match self.session.lock().unwrap().read(buf.initialize_unfilled()) {
+            let mut session = self.session.lock();
+            match session.read(buf.initialize_unfilled()) {
                 Ok(n) => {
                     // No need to schedule waker
                     buf.set_filled(n);
@@ -131,17 +132,13 @@ mod async_tokio {
                         // Schedule waker for execution later
                         (*data_ready).waker = Some(cx.waker().clone());
 
-                        let inner_session = self.session.clone();
+                        let read_event = session.read_event();
                         let inner_shutdown_event = self.shutdown_event.clone();
                         let inner_data_ready = self.data_ready.clone();
 
                         (*data_ready).tokio_wait_thread =
                             Some(tokio::task::spawn_blocking(move || {
-                                wait_for_read(
-                                    inner_session,
-                                    inner_shutdown_event,
-                                    inner_data_ready,
-                                );
+                                wait_for_read(read_event, inner_shutdown_event, inner_data_ready);
                             }));
                         Poll::Pending
                     } else {
