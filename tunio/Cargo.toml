@@ -1,12 +1,13 @@
 [package]
 name = "tunio"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/GamePad64/tunio"
 description = "Crate for creating and managing TUN/TAP interfaces with async support. Works best with netconfig crate."
 categories = ["os", "network-programming"]
 keywords = ["network", "networking", "cross-platform", "tun"]
+readme = "../README.md"
 rust-version = "1.60"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
