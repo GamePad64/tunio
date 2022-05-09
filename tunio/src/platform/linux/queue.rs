@@ -26,6 +26,7 @@ mod ioctls {
 
 pub struct Queue {
     tun_device: AsyncFd<fs::File>,
+    name: String,
 }
 
 impl Queue {
@@ -47,9 +48,18 @@ impl Queue {
 
         unsafe { ioctls::tunsetiff(tun_device.as_raw_fd(), &req as *const _ as _) }.unwrap();
 
+        // Name can change due to formatting
+        let name = String::try_from(&req.ifr_ifrn)
+            .map_err(|e| Error::InterfaceNameError(format!("{e:?}")))?;
+
         Ok(Queue {
             tun_device: AsyncFd::new(tun_device)?,
+            name,
         })
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &*self.name
     }
 }
 

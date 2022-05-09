@@ -14,6 +14,8 @@ pub enum Error {
     LibraryNotLoaded { reason: String },
     #[error("netconfig error: {0}")]
     NetConfigError(netconfig::Error),
+    #[error("interface name error: {0}")]
+    InterfaceNameError(String),
     #[error("config value is invalid ({reason}): {name}={value}")]
     InvalidConfigValue {
         name: String,

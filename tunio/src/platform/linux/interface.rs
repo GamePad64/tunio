@@ -4,6 +4,7 @@ use crate::platform::linux::queue::Queue;
 use crate::traits::{AsyncQueueT, InterfaceT, QueueT};
 use crate::Error;
 use delegate::delegate;
+use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
 use std::io::{Read, Write};
@@ -19,15 +20,18 @@ pub struct Interface {
 impl Interface {
     pub(crate) fn new(params: IfConfig<PlatformIfConfig>) -> Result<Self, Error> {
         let queue = Queue::new(&*params.name, params.layer)?;
+        let name = queue.name().to_string();
 
-        Ok(Self {
-            queue,
-            name: params.name,
-        })
+        debug!(
+            "Interface name is changed \"{}\" -> \"{}\"",
+            &*params.name, name
+        );
+
+        Ok(Self { name, queue })
     }
 
     pub fn name(&self) -> &str {
-        self.name.as_str()
+        &*self.name
     }
 }
 
