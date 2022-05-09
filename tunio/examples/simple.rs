@@ -13,7 +13,9 @@ async fn main() {
     let mut interface_config = DefaultDriver::if_config_builder();
     interface_config.name("name".into());
     #[cfg(target_os = "windows")]
-    interface_config.platform(|mut b| b.description("description".into()).build().unwrap());
+    interface_config
+        .platform(|mut b| b.description("description".into()).build())
+        .unwrap();
     let interface_config = interface_config.build().unwrap();
 
     let mut interface = driver.new_interface_up(interface_config).unwrap();

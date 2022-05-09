@@ -1,8 +1,8 @@
 use super::HandleWrapper;
 use crate::Error;
 use log::error;
+use std::io;
 use std::sync::Arc;
-use std::{io, ptr};
 use widestring::U16CString;
 use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::NET_LUID_LH;
@@ -71,7 +71,6 @@ impl Adapter {
 impl Drop for Adapter {
     fn drop(&mut self) {
         unsafe { self.wintun.WintunCloseAdapter(self.handle.0) };
-        self.handle = HandleWrapper(ptr::null_mut());
     }
 }
 

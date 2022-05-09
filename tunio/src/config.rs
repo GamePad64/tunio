@@ -25,12 +25,12 @@ pub struct IfConfig<P: PlatformIfConfigT> {
 
 impl<P: PlatformIfConfigT + Clone> IfConfigBuilder<P> {
     /// Platform-specific settings
-    pub fn platform<F>(&mut self, f: F) -> &mut Self
+    pub fn platform<F, E>(&mut self, f: F) -> Result<&mut Self, E>
     where
-        F: Fn(P::Builder) -> P,
+        F: Fn(P::Builder) -> Result<P, E>,
     {
         let builder = P::Builder::default();
-        self.platform = Some(f(builder));
-        self
+        self.platform = Some(f(builder)?);
+        Ok(self)
     }
 }
