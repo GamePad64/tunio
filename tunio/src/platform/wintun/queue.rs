@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use std::task::{Context, Poll, Waker};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use windows::{
-    Win32::System::Threading::{WaitForMultipleObjects, WAIT_OBJECT_0},
+    Win32::System::Threading::{WaitForMultipleObjects, WAIT_ABANDONED_0, WAIT_OBJECT_0},
     Win32::System::WindowsProgramming::INFINITE,
 };
 
@@ -30,12 +30,14 @@ pub struct Queue {
 }
 
 const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
+const WAIT_ABANDONED_1: u32 = WAIT_ABANDONED_0 + 1;
 
 impl Queue {
     pub(crate) fn new(session: Session) -> Self {
         Self {
             session: Arc::new(Mutex::new(session)),
-            shutdown_event: Arc::new(SafeEvent::new()),
+            // Manual reset, because we use this event once and it must fire on all threads
+            shutdown_event: Arc::new(SafeEvent::new(true, false)),
             data_ready: Default::default(),
         }
     }
@@ -46,8 +48,9 @@ impl Queue {
         data_ready: Arc<Mutex<DataReadinessHandler>>,
     ) {
         let read_event = session.lock().unwrap().read_event();
-        let result =
-            unsafe { WaitForMultipleObjects(&[shutdown_event.0, read_event], false, INFINITE) };
+        let result = unsafe {
+            WaitForMultipleObjects(&[shutdown_event.handle(), read_event], false, INFINITE)
+        };
         match result {
             // Shutwown
             WAIT_OBJECT_0 => {}
@@ -57,6 +60,12 @@ impl Queue {
                 if let Some(waker) = (*data_ready).waker.take() {
                     waker.wake()
                 }
+            }
+            // Shutdown event deleted
+            WAIT_ABANDONED_0 => {}
+            // Read event deleted
+            WAIT_ABANDONED_1 => {
+                panic!("Read event deleted unexpectedly");
             }
 
             e => {

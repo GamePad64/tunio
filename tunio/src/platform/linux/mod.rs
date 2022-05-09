@@ -9,7 +9,7 @@ use derive_builder::Builder;
 pub use interface::Interface;
 pub use queue::Queue;
 
-pub struct Driver;
+pub struct Driver {}
 
 #[derive(Builder, Clone)]
 pub struct PlatformIfConfig {}
@@ -28,10 +28,7 @@ impl DriverT for Driver {
     type PlatformIf = Interface;
     type PlatformIfConfig = PlatformIfConfig;
 
-    fn new() -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
+    fn new() -> Result<Self, Error> {
         Ok(Driver {})
     }
 

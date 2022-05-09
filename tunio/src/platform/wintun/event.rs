@@ -1,23 +1,21 @@
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Threading::{CreateEventA, SetEvent};
 
-pub(crate) struct SafeEvent(pub(crate) HANDLE);
-
-impl Default for SafeEvent {
-    fn default() -> Self {
-        Self(unsafe { CreateEventA(std::ptr::null(), false, false, None).unwrap() })
-    }
-}
+pub(crate) struct SafeEvent(HANDLE);
 
 impl SafeEvent {
-    pub(crate) fn new() -> Self {
-        Self::default()
+    pub fn new(manual_reset: bool, initial_state: bool) -> Self {
+        Self(unsafe { CreateEventA(std::ptr::null(), manual_reset, initial_state, None).unwrap() })
     }
 
-    pub(crate) fn set_event(&self) {
+    pub fn set_event(&self) {
         unsafe {
-            SetEvent(self.0);
+            SetEvent(self.handle());
         }
+    }
+
+    pub fn handle(&self) -> HANDLE {
+        self.0
     }
 }
 
