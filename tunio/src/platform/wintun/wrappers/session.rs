@@ -82,6 +82,7 @@ impl Session {
         })
     }
 
+    #[allow(dead_code)]
     pub fn read_event(&self) -> HANDLE {
         HANDLE(unsafe { self.wintun.WintunGetReadWaitEvent(self.handle.0) as isize })
     }
