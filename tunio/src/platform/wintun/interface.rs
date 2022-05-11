@@ -59,9 +59,8 @@ impl Interface {
             return Err(Error::LayerUnsupported(params.layer));
         }
 
-        let guid = GUID::new().unwrap();
         let adapter = Arc::new(Adapter::new(
-            guid,
+            GUID::from_u128(params.platform.guid),
             &*params.name,
             &*params.platform.description,
             wintun.clone(),

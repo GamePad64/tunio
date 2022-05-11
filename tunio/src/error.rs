@@ -2,6 +2,7 @@ use crate::config::Layer;
 use std::io;
 use thiserror::Error as ThisError;
 
+#[non_exhaustive]
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error("I/O error: {0}")]
