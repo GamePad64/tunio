@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/netconfig/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/netconfig/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/netconfigctl/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tunio/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

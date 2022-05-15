@@ -1,3 +1,4 @@
+#![doc = include_str!("../../README.md")]
 pub(crate) mod config;
 pub mod platform;
 pub mod traits;

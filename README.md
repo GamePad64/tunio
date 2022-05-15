@@ -1,5 +1,6 @@
 # Tunio
-![Crates.io](https://img.shields.io/crates/v/tunio?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/tunio?style=flat-square)](https://crates.io/crates/tunio)
+[![docs.rs](https://img.shields.io/docsrs/tunio/latest?style=flat-square)](https://docs.rs/tunio)
 
 Create TUN/TAP interfaces in cross-platform and idiomatic Rust!
 
@@ -9,7 +10,7 @@ Create TUN/TAP interfaces in cross-platform and idiomatic Rust!
 - Extensible architecture for adding other platforms later.
 
 ## Short example 📜
-```rust
+```rust,no_run
 use std::io::{Read, Write};
 use tunio::traits::DriverT;
 use tunio::DefaultDriver;
