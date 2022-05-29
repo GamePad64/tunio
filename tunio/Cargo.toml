@@ -16,7 +16,7 @@ rust-version = "1.60"
 tokio = { version = "1.18.2", features = ["rt", "net"], optional = true }
 log = "0.4.16"
 futures = { version = "0.3.21", optional = true }
-netconfig = "0.1.4"
+netconfig = { version = "0.1.4", path = "../../netconfig" }
 derive_builder = "0.11.2"
 cfg-if = "1.0.0"
 delegate = "0.6.2"
@@ -33,6 +33,11 @@ uuid = { version = "1.0.0", features = ["v4"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = "0.24.1"
 libc = "0.2.123"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nix = "0.24.1"
+libc = "0.2.123"
+socket2 = "0.4.4"
 
 [features]
 default = []

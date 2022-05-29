@@ -11,6 +11,8 @@ pub enum Error {
     InterfaceNameUnicodeError,
     #[error("interface name too long: {0} > {1}")]
     InterfaceNameTooLong(usize, usize),
+    #[error("interface name is invalid")]
+    InterfaceNameInvalid,
     #[error("library not loaded: {reason}")]
     LibraryNotLoaded { reason: String },
     #[error("netconfig error: {0}")]
