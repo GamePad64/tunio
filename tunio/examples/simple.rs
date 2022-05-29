@@ -3,7 +3,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tunio::traits::{DriverT, InterfaceT};
-use tunio::DefaultDriver;
+use tunio::{DefaultDriver, DefaultInterface};
 
 #[tokio::main]
 async fn main() {
@@ -18,7 +18,7 @@ async fn main() {
         .unwrap();
     let interface_config = interface_config.build().unwrap();
 
-    let mut interface = driver.new_interface_up(interface_config).unwrap();
+    let mut interface = DefaultInterface::new_up(&mut driver, interface_config).unwrap();
     let iff = interface.handle();
 
     iff.add_ip("18.3.5.6/24".parse().unwrap());

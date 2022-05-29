@@ -1,8 +1,8 @@
-use super::wrappers::Adapter;
-use super::wrappers::Session;
+use super::wrappers::{Adapter, Session};
 use super::PlatformIfConfig;
 use super::Queue;
 use crate::config::{IfConfig, Layer};
+use crate::platform::wintun::Driver;
 use crate::traits::{InterfaceT, QueueT};
 use crate::Error;
 use std::io;
@@ -12,45 +12,14 @@ use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::ConvertInterfaceLuidToIndex;
 use wintun_sys;
 
-pub struct Interface {
+pub(crate) struct CommonInterface {
     wintun: Arc<wintun_sys::wintun>,
     adapter: Arc<Adapter>,
-    queue: Option<Queue>,
     config: IfConfig<PlatformIfConfig>,
 }
 
-impl QueueT for Interface {}
-
-impl InterfaceT for Interface {
-    fn up(&mut self) -> Result<(), Error> {
-        let session = Session::new(
-            self.adapter.clone(),
-            self.wintun.clone(),
-            self.config.platform.capacity,
-        )?;
-
-        self.queue = Some(Queue::new(session));
-
-        Ok(())
-    }
-
-    fn down(&mut self) -> Result<(), Error> {
-        let _ = self.queue.take();
-        Ok(())
-    }
-
-    fn handle(&self) -> netconfig::InterfaceHandle {
-        let mut index = 0;
-        unsafe {
-            ConvertInterfaceLuidToIndex(&self.adapter.luid(), &mut index).unwrap();
-        }
-
-        netconfig::InterfaceHandle::try_from_index(index).unwrap()
-    }
-}
-
-impl Interface {
-    pub(crate) fn new(
+impl CommonInterface {
+    pub fn new(
         wintun: Arc<wintun_sys::wintun>,
         params: IfConfig<PlatformIfConfig>,
     ) -> Result<Self, Error> {
@@ -69,9 +38,62 @@ impl Interface {
         Ok(Self {
             wintun,
             adapter,
-            queue: None,
             config: params,
         })
+    }
+
+    pub fn handle(&self) -> netconfig::InterfaceHandle {
+        let mut index = 0;
+        unsafe {
+            ConvertInterfaceLuidToIndex(&self.adapter.luid(), &mut index).unwrap();
+        }
+
+        netconfig::InterfaceHandle::try_from_index(index).unwrap()
+    }
+
+    pub fn make_session(&self) -> Result<Session, Error> {
+        Session::new(
+            self.adapter.clone(),
+            self.wintun.clone(),
+            self.config.platform.capacity,
+        )
+    }
+}
+
+pub struct Interface {
+    inner: CommonInterface,
+    queue: Option<Queue>,
+}
+
+impl QueueT for Interface {}
+
+impl InterfaceT for Interface {
+    type PlatformDriver = Driver;
+    type PlatformIfConfig = PlatformIfConfig;
+
+    fn new(
+        driver: &mut Self::PlatformDriver,
+        params: IfConfig<Self::PlatformIfConfig>,
+    ) -> Result<Self, Error> {
+        Ok(Self {
+            inner: CommonInterface::new(driver.wintun(), params)?,
+            queue: None,
+        })
+    }
+
+    fn up(&mut self) -> Result<(), Error> {
+        self.queue = Some(Queue::new(self.inner.make_session()?));
+
+        Ok(())
+    }
+
+    fn down(&mut self) -> Result<(), Error> {
+        let _ = self.queue.take();
+        Ok(())
+    }
+
+    fn handle(&self) -> netconfig::InterfaceHandle {
+        self.inner.handle()
     }
 }
 
@@ -96,64 +118,6 @@ impl Write for Interface {
         match &mut self.queue {
             Some(queue) => queue.flush(),
             None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
-        }
-    }
-}
-
-#[cfg(feature = "async-tokio")]
-mod async_tokio {
-    use super::Interface;
-    use crate::traits::AsyncQueueT;
-    use std::io::ErrorKind;
-    use std::pin::Pin;
-    use std::task::{Context, Poll};
-    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-
-    impl AsyncQueueT for Interface {}
-
-    impl AsyncRead for Interface {
-        fn poll_read(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &mut ReadBuf<'_>,
-        ) -> Poll<std::io::Result<()>> {
-            match &mut self.queue {
-                Some(queue) => Pin::new(queue).poll_read(cx, buf),
-                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-            }
-        }
-    }
-
-    impl AsyncWrite for Interface {
-        fn poll_write(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &[u8],
-        ) -> Poll<Result<usize, std::io::Error>> {
-            match &mut self.queue {
-                Some(queue) => Pin::new(queue).poll_write(cx, buf),
-                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-            }
-        }
-
-        fn poll_flush(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-        ) -> Poll<Result<(), std::io::Error>> {
-            match &mut self.queue {
-                Some(queue) => Pin::new(queue).poll_flush(cx),
-                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-            }
-        }
-
-        fn poll_shutdown(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-        ) -> Poll<Result<(), std::io::Error>> {
-            match &mut self.queue {
-                Some(queue) => Pin::new(queue).poll_shutdown(cx),
-                None => Poll::Ready(Err(std::io::Error::from(ErrorKind::BrokenPipe))),
-            }
         }
     }
 }

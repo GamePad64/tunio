@@ -10,3 +10,13 @@ pub use config::{PlatformIfConfig, PlatformIfConfigBuilder};
 pub use driver::Driver;
 pub use interface::Interface;
 pub use queue::Queue;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "async-tokio")] {
+        mod tokio_interface;
+        mod tokio_queue;
+
+        pub use tokio_interface::AsyncTokioInterface;
+        pub use tokio_queue::AsyncTokioQueue;
+    }
+}

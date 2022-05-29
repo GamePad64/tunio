@@ -102,7 +102,7 @@ impl Session {
         Ok(())
     }
 
-    fn map_error(err: io::Error, win32_error: WIN32_ERROR) -> io::Error {
+    fn map_blocking(err: io::Error, win32_error: WIN32_ERROR) -> io::Error {
         if let Some(os_error) = err.raw_os_error() {
             if os_error == win32_error.0 as _ {
                 return io::Error::from(io::ErrorKind::WouldBlock);
@@ -115,7 +115,7 @@ impl Session {
 impl Read for Session {
     fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
         let packet = PacketReader::read(self.handle.clone(), self.wintun.clone())
-            .map_err(|e| Self::map_error(e, ERROR_NO_MORE_ITEMS))?;
+            .map_err(|e| Self::map_blocking(e, ERROR_NO_MORE_ITEMS))?;
 
         let packet_slice = packet.as_slice();
         buf.put(packet_slice);
@@ -137,7 +137,7 @@ impl Write for Session {
             }
             Ok(buf.len())
         } else {
-            Err(Self::map_error(
+            Err(Self::map_blocking(
                 io::Error::last_os_error(),
                 ERROR_BUFFER_OVERFLOW,
             ))

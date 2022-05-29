@@ -1,7 +1,6 @@
 use super::logger::wintun_logger;
 use super::Interface;
 use super::PlatformIfConfig;
-use crate::config::IfConfig;
 use crate::error::Error;
 use crate::traits::DriverT;
 use std::sync::Arc;
@@ -31,11 +30,10 @@ impl DriverT for Driver {
 
         Ok(Self { wintun })
     }
+}
 
-    fn new_interface(
-        &mut self,
-        config: IfConfig<Self::PlatformIfConfig>,
-    ) -> Result<Self::PlatformIf, Error> {
-        Interface::new(self.wintun.clone(), config)
+impl Driver {
+    pub(crate) fn wintun(&self) -> Arc<wintun_sys::wintun> {
+        self.wintun.clone()
     }
 }
