@@ -4,7 +4,7 @@ use super::PlatformIfConfig;
 use super::Queue;
 use crate::config::{IfConfig, Layer};
 use crate::platform::wintun::Driver;
-use crate::traits::{InterfaceT, QueueT};
+use crate::traits::InterfaceT;
 use crate::Error;
 use std::io;
 use std::io::{ErrorKind, Read, Write};

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Threading::{CreateEventA, SetEvent};
 

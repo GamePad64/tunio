@@ -1,5 +1,4 @@
 use super::logger::wintun_logger;
-use super::Interface;
 use super::PlatformIfConfig;
 use crate::error::Error;
 use crate::traits::DriverT;
