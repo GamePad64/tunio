@@ -2,27 +2,30 @@ use super::queue::{create_device, Device};
 use super::Driver;
 use super::PlatformIfConfig;
 use crate::config::IfConfig;
-use crate::platform::util::Queue;
+use crate::platform::util::{AsyncTokioQueue, Queue};
 use crate::traits::{InterfaceT, QueueT};
 use crate::Error;
 use delegate::delegate;
 use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-pub struct Interface {
+pub struct AsyncTokioInterface {
     name: String,
-    queue: Queue,
+    queue: AsyncTokioQueue,
 }
 
-impl Interface {
+impl AsyncTokioInterface {
     pub fn name(&self) -> &str {
         &*self.name
     }
 }
 
-impl InterfaceT for Interface {
+impl InterfaceT for AsyncTokioInterface {
     type PlatformDriver = Driver;
     type PlatformIfConfig = PlatformIfConfig;
 
@@ -31,7 +34,7 @@ impl InterfaceT for Interface {
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
         let Device { device, name } = create_device(&*params.name, params.layer)?;
-        let queue = Queue::new(device);
+        let queue = AsyncTokioQueue::new(device);
 
         if &*params.name != name {
             debug!(
@@ -56,21 +59,33 @@ impl InterfaceT for Interface {
     }
 }
 
-impl QueueT for Interface {}
-
-impl Read for Interface {
-    delegate! {
-        to self.queue {
-            fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error>;
-        }
+impl AsyncRead for AsyncTokioInterface {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        Pin::new(&mut self.queue).poll_read(cx, buf)
     }
 }
 
-impl Write for Interface {
-    delegate! {
-        to self.queue {
-            fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
-            fn flush(&mut self) -> io::Result<()>;
-        }
+impl AsyncWrite for AsyncTokioInterface {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        Pin::new(&mut self.queue).poll_write(cx, buf)
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+        Pin::new(&mut self.queue).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        Pin::new(&mut self.queue).poll_shutdown(cx)
     }
 }

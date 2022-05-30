@@ -8,16 +8,16 @@
 //!
 //! Low-level documentation for this driver can be found [here](https://www.kernel.org/doc/Documentation/networking/tuntap.txt).
 
-pub mod interface;
-pub mod queue;
+mod interface;
+mod queue;
+mod tokio_interface;
 
-use crate::config::IfConfig;
 use crate::traits::{DriverT, PlatformIfConfigT};
 use crate::Error;
 use derive_builder::Builder;
 
 pub use interface::Interface;
-pub use queue::Queue;
+pub use tokio_interface::AsyncTokioInterface;
 
 pub struct Driver {}
 
@@ -39,13 +39,6 @@ impl DriverT for Driver {
     type PlatformIfConfig = PlatformIfConfig;
 
     fn new() -> Result<Self, Error> {
-        Ok(Driver {})
-    }
-
-    fn new_interface(
-        &mut self,
-        config: IfConfig<PlatformIfConfig>,
-    ) -> Result<Self::PlatformIf, Error> {
-        Interface::new(config)
+        Ok(Self {})
     }
 }
