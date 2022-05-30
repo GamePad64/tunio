@@ -12,8 +12,8 @@ Create TUN/TAP interfaces in cross-platform and idiomatic Rust!
 ## Short example 📜
 ```rust,no_run
 use std::io::{Read, Write};
-use tunio::traits::DriverT;
-use tunio::DefaultDriver;
+use tunio::traits::{DriverT, InterfaceT};
+use tunio::{DefaultDriver, DefaultInterface};
 
 fn main() {
     // DefaultDriver is an alias for a supported driver for current platform.
@@ -27,7 +27,7 @@ fn main() {
         .unwrap();
 
     // Then, we create the interface using config and start it immediately.
-    let mut interface = driver.new_interface_up(if_config).unwrap();
+    let mut interface = DefaultInterface::new_up(&mut driver, if_config).unwrap();
 
     // The interface is created and running.
 
