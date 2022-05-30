@@ -1,3 +1,4 @@
+use super::queue::SessionQueueT;
 use super::wrappers::{Adapter, Session};
 use super::PlatformIfConfig;
 use super::Queue;
@@ -12,21 +13,27 @@ use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::ConvertInterfaceLuidToIndex;
 use wintun_sys;
 
-pub(crate) struct CommonInterface {
+pub struct CommonInterface<Q: SessionQueueT> {
     wintun: Arc<wintun_sys::wintun>,
     adapter: Arc<Adapter>,
     config: IfConfig<PlatformIfConfig>,
+    pub(crate) queue: Option<Q>,
 }
 
-impl CommonInterface {
-    pub fn new(
-        wintun: Arc<wintun_sys::wintun>,
-        params: IfConfig<PlatformIfConfig>,
+impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
+    type PlatformDriver = Driver;
+    type PlatformIfConfig = PlatformIfConfig;
+
+    fn new(
+        driver: &mut Self::PlatformDriver,
+        params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
         let _ = Session::validate_capacity(params.platform.capacity);
         if params.layer == Layer::L2 {
             return Err(Error::LayerUnsupported(params.layer));
         }
+
+        let wintun = driver.wintun().clone();
 
         let adapter = Arc::new(Adapter::new(
             GUID::from_u128(params.platform.guid),
@@ -39,50 +46,17 @@ impl CommonInterface {
             wintun,
             adapter,
             config: params,
-        })
-    }
-
-    pub fn handle(&self) -> netconfig::InterfaceHandle {
-        let mut index = 0;
-        unsafe {
-            ConvertInterfaceLuidToIndex(&self.adapter.luid(), &mut index).unwrap();
-        }
-
-        netconfig::InterfaceHandle::try_from_index(index).unwrap()
-    }
-
-    pub fn make_session(&self) -> Result<Session, Error> {
-        Session::new(
-            self.adapter.clone(),
-            self.wintun.clone(),
-            self.config.platform.capacity,
-        )
-    }
-}
-
-pub struct Interface {
-    inner: CommonInterface,
-    queue: Option<Queue>,
-}
-
-impl QueueT for Interface {}
-
-impl InterfaceT for Interface {
-    type PlatformDriver = Driver;
-    type PlatformIfConfig = PlatformIfConfig;
-
-    fn new(
-        driver: &mut Self::PlatformDriver,
-        params: IfConfig<Self::PlatformIfConfig>,
-    ) -> Result<Self, Error> {
-        Ok(Self {
-            inner: CommonInterface::new(driver.wintun(), params)?,
             queue: None,
         })
     }
 
     fn up(&mut self) -> Result<(), Error> {
-        self.queue = Some(Queue::new(self.inner.make_session()?));
+        let session = Session::new(
+            self.adapter.clone(),
+            self.wintun.clone(),
+            self.config.platform.capacity,
+        )?;
+        self.queue = Some(Q::new(session));
 
         Ok(())
     }
@@ -93,9 +67,16 @@ impl InterfaceT for Interface {
     }
 
     fn handle(&self) -> netconfig::InterfaceHandle {
-        self.inner.handle()
+        let mut index = 0;
+        unsafe {
+            ConvertInterfaceLuidToIndex(&self.adapter.luid(), &mut index).unwrap();
+        }
+
+        netconfig::InterfaceHandle::try_from_index(index).unwrap()
     }
 }
+
+pub type Interface = CommonInterface<Queue>;
 
 impl Read for Interface {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {

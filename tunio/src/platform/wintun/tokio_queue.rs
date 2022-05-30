@@ -1,5 +1,6 @@
 use super::event::SafeEvent;
 use super::wrappers::Session;
+use crate::platform::wintun::queue::SessionQueueT;
 use parking_lot::Mutex;
 use std::io::{self, Read, Write};
 use std::pin::Pin;
@@ -19,13 +20,12 @@ pub struct AsyncTokioQueue {
     data_ready: Arc<Mutex<DataReadinessHandler>>,
 }
 
-impl AsyncTokioQueue {
-    pub(crate) fn new(session: Session) -> Self {
+impl SessionQueueT for AsyncTokioQueue {
+    fn new(session: Session) -> Self {
         Self {
             session: Arc::new(Mutex::new(session)),
             // Manual reset, because we use this event once and it must fire on all threads
             shutdown_event: Arc::new(SafeEvent::new(true, false)),
-            #[cfg(feature = "async-tokio")]
             data_ready: Default::default(),
         }
     }

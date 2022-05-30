@@ -10,39 +10,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-pub struct AsyncTokioInterface {
-    inner: CommonInterface,
-    queue: Option<AsyncTokioQueue>,
-}
-
-impl InterfaceT for AsyncTokioInterface {
-    type PlatformDriver = Driver;
-    type PlatformIfConfig = PlatformIfConfig;
-
-    fn new(
-        driver: &mut Self::PlatformDriver,
-        params: IfConfig<Self::PlatformIfConfig>,
-    ) -> Result<Self, Error> {
-        Ok(Self {
-            inner: CommonInterface::new(driver.wintun(), params)?,
-            queue: None,
-        })
-    }
-
-    fn up(&mut self) -> Result<(), Error> {
-        self.queue = Some(AsyncTokioQueue::new(self.inner.make_session()?));
-        Ok(())
-    }
-
-    fn down(&mut self) -> Result<(), Error> {
-        let _ = self.queue.take();
-        Ok(())
-    }
-
-    fn handle(&self) -> netconfig::InterfaceHandle {
-        self.inner.handle()
-    }
-}
+pub type AsyncTokioInterface = CommonInterface<AsyncTokioQueue>;
 
 impl AsyncRead for AsyncTokioInterface {
     fn poll_read(

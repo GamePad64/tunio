@@ -32,7 +32,7 @@ impl DriverT for Driver {
 }
 
 impl Driver {
-    pub(crate) fn wintun(&self) -> Arc<wintun_sys::wintun> {
-        self.wintun.clone()
+    pub(crate) fn wintun(&self) -> &Arc<wintun_sys::wintun> {
+        &self.wintun
     }
 }
