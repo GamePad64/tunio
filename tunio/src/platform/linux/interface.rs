@@ -2,27 +2,28 @@ use super::queue::{create_device, Device};
 use super::Driver;
 use super::PlatformIfConfig;
 use crate::config::IfConfig;
-use crate::platform::util::Queue;
+use crate::platform::util::{sync::Queue, QueueFdT};
 use crate::traits::{InterfaceT, QueueT};
 use crate::Error;
 use delegate::delegate;
+use io_lifetimes::IntoFd;
 use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
 use std::io::{Read, Write};
 
-pub struct Interface {
+pub struct LinuxInterface<Q> {
     name: String,
-    queue: Queue,
+    pub(crate) queue: Q,
 }
 
-impl Interface {
+impl<Q> LinuxInterface<Q> {
     pub fn name(&self) -> &str {
         &*self.name
     }
 }
 
-impl InterfaceT for Interface {
+impl<Q: QueueFdT> InterfaceT for LinuxInterface<Q> {
     type PlatformDriver = Driver;
     type PlatformIfConfig = PlatformIfConfig;
 
@@ -31,7 +32,7 @@ impl InterfaceT for Interface {
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
         let Device { device, name } = create_device(&*params.name, params.layer)?;
-        let queue = Queue::new(device);
+        let queue = Q::new(device.into_fd());
 
         if &*params.name != name {
             debug!(
@@ -55,6 +56,8 @@ impl InterfaceT for Interface {
         netconfig::InterfaceHandle::try_from_name(self.name()).unwrap()
     }
 }
+
+pub type Interface = LinuxInterface<Queue>;
 
 impl QueueT for Interface {}
 

@@ -1,18 +1,10 @@
-use super::Interface;
 use crate::config::Layer;
-use crate::traits::AsyncQueueT;
-use crate::traits::QueueT;
 use crate::Error;
-use delegate::delegate;
 use libc::{IFF_NO_PI, IFF_TAP, IFF_TUN};
 use netconfig::sys::posix::ifreq::ifreq;
-use std::io::{Read, Write};
+use std::fs;
 use std::os::unix::fs::OpenOptionsExt;
-use std::os::unix::io::{AsRawFd, RawFd};
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use std::{fs, io};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use std::os::unix::io::AsRawFd;
 
 mod ioctls {
     nix::ioctl_write_int!(tunsetiff, b'T', 202);
@@ -51,5 +43,3 @@ pub(crate) fn create_device(name: &str, layer: Layer) -> Result<Device, Error> {
             .map_err(|e| Error::InterfaceNameError(format!("{e:?}")))?,
     })
 }
-
-// AsyncTokioQueue

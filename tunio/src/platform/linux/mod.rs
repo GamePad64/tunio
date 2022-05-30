@@ -10,13 +10,15 @@
 
 mod interface;
 mod queue;
+#[cfg(feature = "async-tokio")]
 mod tokio_interface;
 
 use crate::traits::{DriverT, PlatformIfConfigT};
 use crate::Error;
 use derive_builder::Builder;
 
-pub use interface::Interface;
+pub use interface::{Interface, LinuxInterface};
+#[cfg(feature = "async-tokio")]
 pub use tokio_interface::AsyncTokioInterface;
 
 pub struct Driver {}
@@ -35,7 +37,6 @@ impl Default for PlatformIfConfig {
 }
 
 impl DriverT for Driver {
-    type PlatformIf = Interface;
     type PlatformIfConfig = PlatformIfConfig;
 
     fn new() -> Result<Self, Error> {

@@ -1,63 +1,11 @@
-use super::queue::{create_device, Device};
-use super::Driver;
-use super::PlatformIfConfig;
-use crate::config::IfConfig;
-use crate::platform::util::{AsyncTokioQueue, Queue};
-use crate::traits::{InterfaceT, QueueT};
-use crate::Error;
-use delegate::delegate;
-use log::debug;
-use netconfig::sys::InterfaceHandleExt;
+use crate::platform::linux::interface::LinuxInterface;
+use crate::platform::util::async_tokio::AsyncTokioQueue;
 use std::io;
-use std::io::{ErrorKind, Read, Write};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-pub struct AsyncTokioInterface {
-    name: String,
-    queue: AsyncTokioQueue,
-}
-
-impl AsyncTokioInterface {
-    pub fn name(&self) -> &str {
-        &*self.name
-    }
-}
-
-impl InterfaceT for AsyncTokioInterface {
-    type PlatformDriver = Driver;
-    type PlatformIfConfig = PlatformIfConfig;
-
-    fn new(
-        _driver: &mut Self::PlatformDriver,
-        params: IfConfig<Self::PlatformIfConfig>,
-    ) -> Result<Self, Error> {
-        let Device { device, name } = create_device(&*params.name, params.layer)?;
-        let queue = AsyncTokioQueue::new(device);
-
-        if &*params.name != name {
-            debug!(
-                "Interface name is changed \"{}\" -> \"{}\"",
-                &*params.name, name
-            );
-        }
-
-        Ok(Self { name, queue })
-    }
-
-    fn up(&mut self) -> Result<(), Error> {
-        Ok(self.handle().set_up(true)?)
-    }
-
-    fn down(&mut self) -> Result<(), Error> {
-        Ok(self.handle().set_up(false)?)
-    }
-
-    fn handle(&self) -> netconfig::InterfaceHandle {
-        netconfig::InterfaceHandle::try_from_name(self.name()).unwrap()
-    }
-}
+pub type AsyncTokioInterface = LinuxInterface<AsyncTokioQueue>;
 
 impl AsyncRead for AsyncTokioInterface {
     fn poll_read(

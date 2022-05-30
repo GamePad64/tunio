@@ -30,14 +30,13 @@ windows = { version = "0.36.1", features = ["Win32_System_Threading", "Win32_Fou
 parking_lot = "0.12.0"
 uuid = { version = "1.0.0", features = ["v4"] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
-nix = "0.24.1"
-libc = "0.2.123"
-
 [target.'cfg(target_os = "macos")'.dependencies]
+socket2 = "0.4.4"
+
+[target.'cfg(unix)'.dependencies]
 nix = "0.24.1"
 libc = "0.2.123"
-socket2 = "0.4.4"
+io-lifetimes = "0.6.1"
 
 [features]
 default = []

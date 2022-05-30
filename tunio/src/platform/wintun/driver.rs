@@ -11,7 +11,6 @@ pub struct Driver {
 }
 
 impl DriverT for Driver {
-    type PlatformIf = Interface;
     type PlatformIfConfig = PlatformIfConfig;
 
     fn new() -> Result<Self, Error> {

@@ -7,7 +7,6 @@ pub trait PlatformIfConfigT: Default + Clone {
 }
 
 pub trait DriverT: Sized {
-    type PlatformIf: InterfaceT;
     type PlatformIfConfig: PlatformIfConfigT;
 
     fn new() -> Result<Self, Error>
@@ -45,6 +44,6 @@ pub trait QueueT: Read + Write {}
 cfg_if::cfg_if! {
     if #[cfg(feature = "async-tokio")] {
         use tokio::io::{AsyncRead, AsyncWrite};
-        pub trait AsyncQueueT: AsyncRead + AsyncWrite {}
+        pub trait AsyncTokioQueueT: AsyncRead + AsyncWrite {}
     }
 }

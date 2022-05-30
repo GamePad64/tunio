@@ -101,7 +101,7 @@ impl Read for Interface {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match &mut self.queue {
             Some(queue) => queue.read(buf),
-            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
         }
     }
 }
@@ -110,14 +110,14 @@ impl Write for Interface {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match &mut self.queue {
             Some(queue) => queue.write(buf),
-            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match &mut self.queue {
             Some(queue) => queue.flush(),
-            None => Err(std::io::Error::from(ErrorKind::BrokenPipe)),
+            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
         }
     }
 }
