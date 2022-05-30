@@ -1,17 +1,34 @@
-use crate::platform::utun::queue::Queue;
-use crate::platform::utun::PlatformIfConfig;
+use crate::platform::util::sync::Queue;
+use crate::platform::util::QueueFdT;
+use crate::platform::utun::queue::create_device;
+use crate::platform::utun::{Driver, PlatformIfConfig};
 use crate::traits::{InterfaceT, QueueT};
 use crate::{Error, IfConfig};
 use delegate::delegate;
 use netconfig::sys::InterfaceHandleExt;
 use std::io::{self, Read, Write};
 
-pub struct Interface {
+pub struct UtunInterface<Q> {
     name: String,
-    queue: Queue,
+    queue: Q,
 }
 
-impl InterfaceT for Interface {
+impl<Q: QueueFdT> InterfaceT for UtunInterface<Q> {
+    type PlatformDriver = Driver;
+    type PlatformIfConfig = PlatformIfConfig;
+
+    fn new(
+        _driver: &mut Self::PlatformDriver,
+        params: IfConfig<Self::PlatformIfConfig>,
+    ) -> Result<Self, Error> {
+        let queue = Q::new(create_device(&params.name)?);
+
+        Ok(Self {
+            name: params.name,
+            queue,
+        })
+    }
+
     fn up(&mut self) -> Result<(), Error> {
         Ok(self.handle().set_flags(
             (libc::IFF_POINTOPOINT | libc::IFF_MULTICAST | libc::IFF_UP | libc::IFF_RUNNING) as _,
@@ -29,20 +46,13 @@ impl InterfaceT for Interface {
     }
 }
 
-impl Interface {
-    pub(crate) fn new(params: IfConfig<PlatformIfConfig>) -> Result<Self, Error> {
-        let queue = Queue::new(&params.name)?;
-
-        Ok(Self {
-            name: params.name,
-            queue,
-        })
-    }
-
+impl<Q> UtunInterface<Q> {
     pub fn name(&self) -> &str {
         &self.name
     }
 }
+
+pub type Interface = UtunInterface<Queue>;
 
 impl QueueT for Interface {}
 

@@ -1,86 +1,39 @@
-use crate::traits::QueueT;
 use crate::Error;
-use delegate::delegate;
+use io_lifetimes::OwnedFd;
 use libc::{PF_SYSTEM, SYSPROTO_CONTROL};
 use nix::sys::socket::SysControlAddr;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use std::io::{self, Read, Write};
 use std::mem;
-use std::os::unix::io::AsRawFd;
-#[cfg(feature = "async-tokio")]
-use tokio::io::unix::AsyncFd;
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 
 const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
-impl QueueT for Queue {}
+pub(crate) fn create_device(name: &str) -> Result<OwnedFd, Error> {
+    let mut id = match name {
+        s if s.starts_with("utun") => s[4..].parse().map_err(|_| Error::InterfaceNameInvalid),
+        _ => Err(Error::InterfaceNameInvalid),
+    }?;
+    id += 1;
 
-pub struct Queue {
-    #[cfg(feature = "async-tokio")]
-    tun_device: AsyncFd<Socket>,
-    #[cfg(not(feature = "async-tokio"))]
-    tun_device: Socket,
-}
+    let tun_device = Socket::new(
+        Domain::from(PF_SYSTEM),
+        Type::DGRAM,
+        Some(Protocol::from(SYSPROTO_CONTROL)),
+    )
+    .unwrap();
 
-impl Queue {
-    pub(crate) fn new(name: &str) -> Result<Self, Error> {
-        let mut id = match name {
-            s if s.starts_with("utun") => s[4..].parse().map_err(|_| Error::InterfaceNameInvalid),
-            _ => Err(Error::InterfaceNameInvalid),
-        }?;
-        id += 1;
+    let sa = SysControlAddr::from_name(tun_device.as_raw_fd(), UTUN_CONTROL_NAME, id).unwrap();
 
-        let tun_device = Socket::new(
-            Domain::from(PF_SYSTEM),
-            Type::DGRAM,
-            Some(Protocol::from(SYSPROTO_CONTROL)),
-        )
-        .unwrap();
-
-        let sa = SysControlAddr::from_name(tun_device.as_raw_fd(), UTUN_CONTROL_NAME, id).unwrap();
-
-        let (_, sa) = unsafe {
-            SockAddr::init(|sa_storage, len| {
-                let sockaddr = sa_storage as *mut libc::sockaddr_ctl;
-                *sockaddr = *sa.as_ref();
-                *len = mem::size_of::<libc::sockaddr_ctl>() as _;
-                Ok(())
-            })
-        }
-        .unwrap();
-        tun_device.connect(&sa).unwrap();
-
-        Ok(Queue {
-            #[cfg(feature = "async-tokio")]
-            tun_device: AsyncFd::new(tun_device)?,
-            #[cfg(not(feature = "async-tokio"))]
-            tun_device,
+    let (_, sa) = unsafe {
+        SockAddr::init(|sa_storage, len| {
+            let sockaddr = sa_storage as *mut libc::sockaddr_ctl;
+            *sockaddr = *sa.as_ref();
+            *len = mem::size_of::<libc::sockaddr_ctl>() as _;
+            Ok(())
         })
     }
+    .unwrap();
+    tun_device.connect(&sa).unwrap();
 
-    pub(crate) fn tun_file_ref(&self) -> &Socket {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "async-tokio")] {
-                self.tun_device.get_ref()
-            }else{
-                &self.tun_device
-            }
-        }
-    }
-}
-
-impl Read for Queue {
-    delegate! {
-        to self.tun_file_ref() {
-            fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error>;
-        }
-    }
-}
-
-impl Write for Queue {
-    delegate! {
-        to self.tun_file_ref() {
-            fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
-            fn flush(&mut self) -> io::Result<()>;
-        }
-    }
+    Ok(unsafe { OwnedFd::from_raw_fd(tun_device.into_raw_fd()) })
 }
