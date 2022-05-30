@@ -398,6 +398,8 @@ dependencies = [
 [[package]]
 name = "netconfig"
 version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecfae369e09f7a2519d2db2882914dade34b61a0600ea2dcbb3d79cf42282916"
 dependencies = [
  "cfg-if",
  "core-foundation",
@@ -413,7 +415,7 @@ dependencies = [
  "system-configuration-sys",
  "thiserror",
  "widestring",
- "windows",
+ "windows 0.36.1",
 ]
 
 [[package]]
@@ -738,7 +740,7 @@ dependencies = [
  "tokio",
  "uuid",
  "widestring",
- "windows",
+ "windows 0.37.0",
  "wintun-sys",
 ]
 
@@ -805,6 +807,19 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e53b97a83176b369b0eb2fd8158d4ae215357d02df9d40c1e1bf1879c5482c80"
+dependencies = [
+ "windows_aarch64_msvc 0.36.1",
+ "windows_i686_gnu 0.36.1",
+ "windows_i686_msvc 0.36.1",
+ "windows_x86_64_gnu 0.36.1",
+ "windows_x86_64_msvc 0.36.1",
+]
 
 [[package]]
 name = "windows"
