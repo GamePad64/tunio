@@ -49,3 +49,6 @@ env_logger = "0.9.0"
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[workspace]
+members = ["wintun-sys"]
