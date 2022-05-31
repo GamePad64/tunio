@@ -12,7 +12,7 @@ pub struct PlatformIfConfig {
     /// GUID of this network interface. It is recommended to set it manually,
     /// or new device will be created on each invocation, and it will quickly
     /// pollute Windows registry.
-    #[builder(default = "uuid::Uuid::new_v4().as_u128()")]
+    #[builder(default = "windows::core::GUID::new().unwrap().to_u128()")]
     pub guid: u128,
 }
 
