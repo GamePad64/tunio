@@ -2,7 +2,7 @@ use crate::platform::util::sync::Queue;
 use crate::platform::util::QueueFdT;
 use crate::platform::utun::queue::create_device;
 use crate::platform::utun::{Driver, PlatformIfConfig};
-use crate::traits::{InterfaceT, QueueT};
+use crate::traits::{InterfaceT, SyncQueueT};
 use crate::{Error, IfConfig};
 use delegate::delegate;
 use netconfig::sys::InterfaceHandleExt;
@@ -54,7 +54,7 @@ impl<Q> UtunInterface<Q> {
 
 pub type Interface = UtunInterface<Queue>;
 
-impl QueueT for Interface {}
+impl SyncQueueT for Interface {}
 
 impl Read for Interface {
     delegate! {

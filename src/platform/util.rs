@@ -6,7 +6,7 @@ pub(crate) trait QueueFdT {
 
 pub(crate) mod sync {
     use super::QueueFdT;
-    use crate::traits::QueueT;
+    use crate::traits::SyncQueueT;
     use delegate::delegate;
     use io_lifetimes::{FromFd, OwnedFd};
     use std::fs;
@@ -14,7 +14,7 @@ pub(crate) mod sync {
 
     pub struct Queue(fs::File);
 
-    impl QueueT for Queue {}
+    impl SyncQueueT for Queue {}
 
     impl QueueFdT for Queue {
         fn new(device: OwnedFd) -> Self {

@@ -40,7 +40,7 @@ pub trait InterfaceT: Sized {
     fn handle(&self) -> netconfig::InterfaceHandle;
 }
 
-pub trait QueueT: Read + Write {}
+pub trait SyncQueueT: Read + Write {}
 cfg_if::cfg_if! {
     if #[cfg(feature = "async-tokio")] {
         use tokio::io::{AsyncRead, AsyncWrite};

@@ -3,7 +3,7 @@ use super::Driver;
 use super::PlatformIfConfig;
 use crate::config::IfConfig;
 use crate::platform::util::{sync::Queue, QueueFdT};
-use crate::traits::{InterfaceT, QueueT};
+use crate::traits::{InterfaceT, SyncQueueT};
 use crate::Error;
 use delegate::delegate;
 use io_lifetimes::IntoFd;
@@ -59,7 +59,7 @@ impl<Q: QueueFdT> InterfaceT for LinuxInterface<Q> {
 
 pub type Interface = LinuxInterface<Queue>;
 
-impl QueueT for Interface {}
+impl SyncQueueT for Interface {}
 
 impl Read for Interface {
     delegate! {

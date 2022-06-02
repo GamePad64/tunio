@@ -1,12 +1,12 @@
 use super::wrappers::Session;
-use crate::traits::QueueT;
+use crate::traits::SyncQueueT;
 use std::io::{self, Read, Write};
 
 pub trait SessionQueueT {
     fn new(session: Session) -> Self;
 }
 
-impl QueueT for Queue {}
+impl SyncQueueT for Queue {}
 
 pub struct Queue {
     session: Session,

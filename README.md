@@ -44,7 +44,7 @@ fn main() {
 
 ## Supported platforms 🖥️
 - **Windows**, TUN only (using [`Wintun`] driver).
-  - [`Wintun`] driver requires a prebuilt DLL inside application folder. Please, refer to [`Wintun`] documentation for mode details.
+  - [`Wintun`] driver requires a prebuilt DLL inside application folder. Please, refer to [`Wintun`] documentation for more details.
 - **Linux**
 
 [`Wintun`]: https://www.wintun.net/
