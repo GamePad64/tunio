@@ -35,7 +35,7 @@ socket2 = "0.4.4"
 [target.'cfg(unix)'.dependencies]
 nix = "0.24.1"
 libc = "0.2.126"
-io-lifetimes = "0.6.1"
+io-lifetimes = "0.7.0"
 
 [features]
 default = []
