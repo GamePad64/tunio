@@ -121,6 +121,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "delegate"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d70a2d4995466955a415223acf3c9c934b9ff2339631cdf4ffc893da4bacd717"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -381,7 +392,7 @@ checksum = "ecfae369e09f7a2519d2db2882914dade34b61a0600ea2dcbb3d79cf42282916"
 dependencies = [
  "cfg-if",
  "core-foundation",
- "delegate",
+ "delegate 0.6.2",
  "ipnet",
  "ipnetwork",
  "libc",
@@ -693,7 +704,7 @@ version = "0.2.0"
 dependencies = [
  "bytes",
  "cfg-if",
- "delegate",
+ "delegate 0.7.0",
  "derive_builder",
  "env_logger",
  "etherparse",
