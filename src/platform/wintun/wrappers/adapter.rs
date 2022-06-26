@@ -5,7 +5,6 @@ use std::io;
 use std::sync::Arc;
 use widestring::U16CString;
 use windows::core::GUID;
-use windows::Win32::NetworkManagement::IpHelper::NET_LUID_LH;
 use wintun_sys::WINTUN_ADAPTER_HANDLE;
 
 const MAX_NAME: usize = 255;
@@ -52,15 +51,13 @@ impl Adapter {
         })
     }
 
-    pub fn luid(&self) -> NET_LUID_LH {
+    pub fn luid(&self) -> u64 {
         let mut luid_buf: wintun_sys::NET_LUID = unsafe { std::mem::zeroed() };
         unsafe {
             self.wintun
                 .WintunGetAdapterLUID(self.handle.0, &mut luid_buf as _)
         }
-        NET_LUID_LH {
-            Value: unsafe { luid_buf.Value },
-        }
+        unsafe { luid_buf.Value }
     }
 
     pub fn handle(&self) -> WINTUN_ADAPTER_HANDLE {

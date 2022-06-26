@@ -11,6 +11,7 @@ use std::io::{ErrorKind, Read, Write};
 use std::sync::Arc;
 use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::ConvertInterfaceLuidToIndex;
+use windows::Win32::NetworkManagement::Ndis::NET_LUID_LH;
 use wintun_sys;
 
 pub struct CommonInterface<Q: SessionQueueT> {
@@ -68,8 +69,12 @@ impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
 
     fn handle(&self) -> netconfig::InterfaceHandle {
         let mut index = 0;
+        let luid = NET_LUID_LH {
+            Value: self.adapter.luid(),
+        };
+
         unsafe {
-            ConvertInterfaceLuidToIndex(&self.adapter.luid(), &mut index).unwrap();
+            ConvertInterfaceLuidToIndex(&luid, &mut index).unwrap();
         }
 
         netconfig::InterfaceHandle::try_from_index(index).unwrap()
