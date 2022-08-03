@@ -20,7 +20,7 @@ netconfig = "0.2.0"
 derive_builder = "0.11.2"
 cfg-if = "1.0.0"
 delegate = "0.7.0"
-thiserror = "1.0.31"
+thiserror = "1.0.32"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 widestring = "1.0.2"
