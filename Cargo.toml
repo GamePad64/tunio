@@ -15,7 +15,7 @@ rust-version = "1.60"
 [dependencies]
 tokio = { version = "1.20.0", features = ["rt", "net", "fs"], optional = true }
 log = "0.4.17"
-futures = { version = "0.3.21", optional = true }
+futures = { version = "0.3.23", optional = true }
 netconfig = "0.2.0"
 derive_builder = "0.11.2"
 cfg-if = "1.0.0"
