@@ -13,7 +13,7 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.20.0", features = ["rt", "net", "fs"], optional = true }
+tokio = { version = "1.21.1", features = ["rt", "net", "fs"], optional = true }
 log = "0.4.17"
 futures = { version = "0.3.21", optional = true }
 netconfig = "0.2.0"
@@ -42,7 +42,7 @@ default = []
 async-tokio = ["dep:tokio", "dep:futures"]
 
 [dev-dependencies]
-tokio = { version = "1.20.0", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
+tokio = { version = "1.21.1", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
 etherparse = "0.11.0"
 env_logger = "0.9.0"
 
