@@ -121,6 +121,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "delegate"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "082a24a9967533dc5d743c602157637116fc1b52806d694a5a45e6f32567fcdd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -287,16 +298,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
-name = "io-lifetimes"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24c3f4eff5495aee4c0399d7b6a0dc2b6e81be84242ffbfcf253ebacccc1d0cb"
-dependencies = [
- "libc",
- "windows-sys",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -313,9 +314,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.126"
+version = "0.2.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
+checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
 
 [[package]]
 name = "libloading"
@@ -376,19 +377,17 @@ dependencies = [
 [[package]]
 name = "netconfig"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bce9a542efeff6bd47853a7e5273ddf078912a148376d15c49348e9c729bb72"
 dependencies = [
  "cfg-if",
  "core-foundation",
- "delegate",
+ "delegate 0.7.0",
  "ipnet",
  "ipnetwork",
  "libc",
  "log",
  "netlink-packet-route",
  "netlink-sys",
- "nix",
+ "nix 0.24.1",
  "scopeguard",
  "system-configuration-sys",
  "thiserror",
@@ -455,6 +454,20 @@ dependencies = [
  "cfg-if",
  "libc",
  "memoffset",
+]
+
+[[package]]
+name = "nix"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e322c04a9e3440c327fca7b6c8a63e6890a32fa2ad689db972425f07e0d22abb"
+dependencies = [
+ "autocfg",
+ "bitflags",
+ "cfg-if",
+ "libc",
+ "memoffset",
+ "pin-utils",
 ]
 
 [[package]]
@@ -693,16 +706,15 @@ version = "0.3.0"
 dependencies = [
  "bytes",
  "cfg-if",
- "delegate",
+ "delegate 0.8.0",
  "derive_builder",
  "env_logger",
  "etherparse",
  "futures",
- "io-lifetimes",
  "libc",
  "log",
  "netconfig",
- "nix",
+ "nix 0.25.0",
  "parking_lot",
  "socket2",
  "thiserror",

@@ -6,7 +6,6 @@ use crate::platform::util::{sync::Queue, QueueFdT};
 use crate::traits::{InterfaceT, SyncQueueT};
 use crate::Error;
 use delegate::delegate;
-use io_lifetimes::IntoFd;
 use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
@@ -32,7 +31,7 @@ impl<Q: QueueFdT> InterfaceT for LinuxInterface<Q> {
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
         let Device { device, name } = create_device(&*params.name, params.layer)?;
-        let queue = Q::new(device.into_fd());
+        let queue = Q::new(device.into());
 
         if &*params.name != name {
             debug!(

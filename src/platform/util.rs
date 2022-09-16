@@ -1,4 +1,4 @@
-use io_lifetimes::OwnedFd;
+use std::os::unix::io::OwnedFd;
 
 pub(crate) trait QueueFdT {
     fn new(device: OwnedFd) -> Self;
@@ -8,9 +8,9 @@ pub(crate) mod sync {
     use super::QueueFdT;
     use crate::traits::SyncQueueT;
     use delegate::delegate;
-    use io_lifetimes::{FromFd, OwnedFd};
     use std::fs;
     use std::io::{self, Read, Write};
+    use std::os::unix::io::OwnedFd;
 
     pub struct Queue(fs::File);
 
@@ -18,7 +18,7 @@ pub(crate) mod sync {
 
     impl QueueFdT for Queue {
         fn new(device: OwnedFd) -> Self {
-            Self(fs::File::from_fd(device))
+            Self(device.into())
         }
     }
 
@@ -44,9 +44,8 @@ pub(crate) mod sync {
 pub(crate) mod async_tokio {
     use super::QueueFdT;
     use crate::traits::AsyncTokioQueueT;
-    use io_lifetimes::OwnedFd;
     use std::io;
-    use std::os::unix::io::{FromRawFd, IntoRawFd};
+    use std::os::unix::io::{FromRawFd, IntoRawFd, OwnedFd};
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
