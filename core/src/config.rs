@@ -1,11 +1,12 @@
 use crate::traits::PlatformIfConfigT;
 use derive_builder::Builder;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum Layer {
     /// TAP, Ethernet-like interface with L2 capabilities
     L2,
     /// TUN, point-to-point IP interface
+    #[default]
     L3,
 }
 
@@ -14,7 +15,7 @@ pub struct IfConfig<P: PlatformIfConfigT> {
     /// Interface name on Unix and interface alias on Windows.
     pub name: String,
     /// Interface type: TUN or TAP.
-    #[builder(default = "Layer::L3")]
+    #[builder(default = "Layer::default()")]
     pub layer: Layer,
 
     #[allow(dead_code)]

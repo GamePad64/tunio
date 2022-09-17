@@ -1,9 +1,10 @@
 use etherparse::PacketBuilder;
+use futures::AsyncReadExt;
+use futures::AsyncWriteExt;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tunio::traits::{DriverT, InterfaceT};
-use tunio::{DefaultDriver, DefaultInterface};
+use tunio::{DefaultAsyncInterface, DefaultDriver};
 
 #[tokio::main]
 async fn main() {
@@ -18,7 +19,7 @@ async fn main() {
         .unwrap();
     let interface_config = interface_config.build().unwrap();
 
-    let mut interface = DefaultInterface::new_up(&mut driver, interface_config).unwrap();
+    let mut interface = DefaultAsyncInterface::new_up(&mut driver, interface_config).unwrap();
     let iff = interface.handle();
 
     iff.add_ip("18.3.5.6/24".parse().unwrap());
@@ -37,17 +38,17 @@ async fn main() {
         let mut packet = Vec::with_capacity(builder.size(0));
         builder.write(&mut packet, &[]).unwrap();
 
-        // interface.write(&*packet).await;
+        interface.write(&*packet).await;
 
         sleep(Duration::from_secs(1));
     }
 
     let mut buf = vec![0u8; 4096];
-    // while let Ok(n) = interface.read(buf.as_mut_slice()).await {
-    //     buf.truncate(n);
-    //     println!("{buf:x?}");
-    //     buf.resize(4096, 0u8);
-    // }
+    while let Ok(n) = interface.read(buf.as_mut_slice()).await {
+        buf.truncate(n);
+        println!("{buf:x?}");
+        buf.resize(4096, 0u8);
+    }
 
     tokio::signal::ctrl_c().await;
 }

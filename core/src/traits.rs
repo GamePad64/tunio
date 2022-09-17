@@ -1,5 +1,6 @@
-use crate::Error;
-use crate::{IfConfig, IfConfigBuilder};
+use crate::config::{IfConfig, IfConfigBuilder};
+use crate::error::Error;
+use futures::{AsyncRead, AsyncWrite};
 use std::io::{Read, Write};
 
 pub trait PlatformIfConfigT: Default + Clone {
@@ -41,9 +42,4 @@ pub trait InterfaceT: Sized {
 }
 
 pub trait SyncQueueT: Read + Write {}
-cfg_if::cfg_if! {
-    if #[cfg(feature = "async-tokio")] {
-        use tokio::io::{AsyncRead, AsyncWrite};
-        pub trait AsyncTokioQueueT: AsyncRead + AsyncWrite {}
-    }
-}
+pub trait AsyncQueueT: AsyncRead + AsyncWrite {}

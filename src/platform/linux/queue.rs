@@ -1,10 +1,9 @@
-use crate::config::Layer;
 use crate::Error;
 use libc::{IFF_NO_PI, IFF_TAP, IFF_TUN};
 use netconfig::sys::posix::ifreq::ifreq;
 use std::fs;
-use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::io::AsRawFd;
+use tunio_core::config::Layer;
 
 mod ioctls {
     nix::ioctl_write_int!(tunsetiff, b'T', 202);
@@ -22,7 +21,6 @@ pub(crate) fn create_device(name: &str, layer: Layer) -> Result<Device, Error> {
     let tun_device = fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .custom_flags(libc::O_NONBLOCK)
         .open("/dev/net/tun")?;
 
     let mut init_flags = match layer {

@@ -8,12 +8,12 @@ description = "Crate for creating and managing TUN/TAP interfaces with async sup
 categories = ["os", "network-programming"]
 keywords = ["network", "networking", "cross-platform", "tun"]
 readme = "README.md"
-rust-version = "1.60"
+rust-version = "1.63"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.19.2", features = ["rt", "net", "fs"], optional = true }
+tokio = { version = "1.21.1", features = ["rt", "net", "fs"], optional = true }
 log = "0.4.17"
 futures = { version = "0.3.21", optional = true }
 netconfig = { version = "0.2.0", path = "../netconfig" }
@@ -21,6 +21,7 @@ derive_builder = "0.11.2"
 cfg-if = "1.0.0"
 delegate = "0.8.0"
 thiserror = "1.0.31"
+tunio-core = { version = "0.1.0", path = "core" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 widestring = "1.0.1"
@@ -38,7 +39,7 @@ libc = "0.2.126"
 
 [features]
 default = []
-async-tokio = ["dep:tokio", "dep:futures"]
+async-tokio = ["dep:tokio"]
 
 [dev-dependencies]
 tokio = { version = "1.19.2", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
@@ -50,4 +51,4 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [workspace]
-members = ["wintun-sys"]
+members = ["wintun-sys", "core"]

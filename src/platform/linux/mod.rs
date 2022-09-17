@@ -10,16 +10,12 @@
 
 mod interface;
 mod queue;
-#[cfg(feature = "async-tokio")]
-mod tokio_interface;
 
-use crate::traits::{DriverT, PlatformIfConfigT};
-use crate::Error;
 use derive_builder::Builder;
+use tunio_core::error::Error;
+use tunio_core::traits::{DriverT, PlatformIfConfigT};
 
-pub use interface::{Interface, LinuxInterface};
-#[cfg(feature = "async-tokio")]
-pub use tokio_interface::AsyncTokioInterface;
+pub use interface::{AsyncInterface, Interface, LinuxInterface};
 
 pub struct Driver {}
 

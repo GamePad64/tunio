@@ -1,15 +1,18 @@
 use super::queue::{create_device, Device};
 use super::Driver;
 use super::PlatformIfConfig;
-use crate::config::IfConfig;
-use crate::platform::util::{sync::Queue, QueueFdT};
-use crate::traits::{InterfaceT, SyncQueueT};
-use crate::Error;
 use delegate::delegate;
+use futures::{AsyncRead, AsyncWrite};
 use log::debug;
 use netconfig::sys::InterfaceHandleExt;
 use std::io;
 use std::io::{Read, Write};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tunio_core::config::IfConfig;
+use tunio_core::error::Error;
+use tunio_core::file_queue::{AsyncFdQueue, FdQueueT, SyncFdQueue};
+use tunio_core::traits::{InterfaceT, SyncQueueT};
 
 pub struct LinuxInterface<Q> {
     name: String,
@@ -22,7 +25,7 @@ impl<Q> LinuxInterface<Q> {
     }
 }
 
-impl<Q: QueueFdT> InterfaceT for LinuxInterface<Q> {
+impl<Q: FdQueueT> InterfaceT for LinuxInterface<Q> {
     type PlatformDriver = Driver;
     type PlatformIfConfig = PlatformIfConfig;
 
@@ -56,7 +59,7 @@ impl<Q: QueueFdT> InterfaceT for LinuxInterface<Q> {
     }
 }
 
-pub type Interface = LinuxInterface<Queue>;
+pub type Interface = LinuxInterface<SyncFdQueue>;
 
 impl SyncQueueT for Interface {}
 
@@ -73,6 +76,26 @@ impl Write for Interface {
         to self.queue {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
             fn flush(&mut self) -> io::Result<()>;
+        }
+    }
+}
+
+pub type AsyncInterface = LinuxInterface<AsyncFdQueue>;
+
+impl AsyncRead for AsyncInterface {
+    delegate! {
+        to Pin::new(&mut self.queue) {
+            fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>>;
+        }
+    }
+}
+
+impl AsyncWrite for AsyncInterface {
+    delegate! {
+        to Pin::new(&mut self.queue) {
+            fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>>;
+            fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
+            fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
         }
     }
 }
