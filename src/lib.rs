@@ -14,7 +14,7 @@ cfg_if::cfg_if! {
         pub type DefaultDriver = platform::wintun::Driver;
         pub type DefaultInterface = platform::wintun::Interface;
         #[cfg(feature = "async-tokio")]
-        pub type DefaultTokioInterface = platform::wintun::AsyncTokioInterface;
+        pub type DefaultAsyncInterface = platform::wintun::AsyncInterface;
     }else if #[cfg(target_os = "linux")] {
         pub type DefaultDriver = platform::linux::Driver;
         pub type DefaultInterface = platform::linux::Interface;

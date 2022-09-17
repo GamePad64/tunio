@@ -16,7 +16,7 @@ cfg_if::cfg_if! {
         mod tokio_interface;
         mod tokio_queue;
 
-        pub use tokio_interface::AsyncTokioInterface;
-        pub use tokio_queue::AsyncTokioQueue;
+        pub use tokio_interface::AsyncInterface;
+        pub use tokio_queue::AsyncQueue;
     }
 }
