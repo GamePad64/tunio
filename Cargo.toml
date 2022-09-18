@@ -37,7 +37,6 @@ libc = "0.2.126"
 
 [features]
 default = []
-async-tokio = ["dep:tokio"]
 
 [dev-dependencies]
 tokio = { version = "1.20.0", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
