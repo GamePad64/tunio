@@ -11,6 +11,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use tunio_core::config::IfConfig;
 use tunio_core::queue::syncfd::SyncFdQueue;
+#[cfg(feature = "tokio")]
 use tunio_core::queue::tokiofd::TokioFdQueue;
 use tunio_core::queue::FdQueueT;
 use tunio_core::traits::{AsyncQueueT, InterfaceT, SyncQueueT};
@@ -62,7 +63,6 @@ impl<Q: FdQueueT> InterfaceT for LinuxInterface<Q> {
 }
 
 pub type Interface = LinuxInterface<SyncFdQueue>;
-
 impl SyncQueueT for Interface {}
 
 impl<Q: SyncQueueT> Read for LinuxInterface<Q> {
@@ -82,7 +82,10 @@ impl<Q: SyncQueueT> Write for LinuxInterface<Q> {
     }
 }
 
-pub type AsyncInterface = LinuxInterface<TokioFdQueue>;
+#[cfg(feature = "tokio")]
+pub type TokioInterface = LinuxInterface<TokioFdQueue>;
+#[cfg(feature = "tokio")]
+impl AsyncQueueT for TokioInterface {}
 
 impl<Q: AsyncQueueT + Unpin> AsyncRead for LinuxInterface<Q> {
     delegate! {

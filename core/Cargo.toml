@@ -13,13 +13,10 @@ derive_builder = "0.11.2"
 cfg-if = "1.0.0"
 delegate = "0.8.0"
 thiserror = "1.0.31"
-blocking = "1.2.0"
-async-fs = "1.6.0"
-async-lock = "2.5.0"
-tokio = { version = "1.21.1", features = ["net", "rt"] }
+tokio = { version = "1.21.1", features = ["net", "rt"], optional = true }
 
 [features]
-default = []
+tokio = ["dep:tokio"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -15,7 +15,9 @@ use derive_builder::Builder;
 use tunio_core::traits::{DriverT, PlatformIfConfigT};
 use tunio_core::Error;
 
-pub use interface::{AsyncInterface, Interface, LinuxInterface};
+#[cfg(feature = "tokio")]
+pub use interface::TokioInterface;
+pub use interface::{Interface, LinuxInterface};
 
 pub struct Driver {}
 
