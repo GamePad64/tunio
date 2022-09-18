@@ -6,7 +6,7 @@ pub(crate) struct SafeEvent(HANDLE);
 
 impl SafeEvent {
     pub fn new(manual_reset: bool, initial_state: bool) -> Self {
-        Self(unsafe { CreateEventA(std::ptr::null(), manual_reset, initial_state, None).unwrap() })
+        Self(unsafe { CreateEventA(None, manual_reset, initial_state, None).unwrap() })
     }
 
     pub fn set_event(&self) {

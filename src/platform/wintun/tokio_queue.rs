@@ -7,9 +7,10 @@ use std::io::{self, Read, Write};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
+use windows::Win32::Foundation::WIN32_ERROR;
 use windows::{
-    Win32::Foundation::HANDLE,
-    Win32::System::Threading::{WaitForMultipleObjects, WAIT_ABANDONED_0, WAIT_OBJECT_0},
+    Win32::Foundation::HANDLE, Win32::Foundation::WAIT_ABANDONED_0,
+    Win32::Foundation::WAIT_OBJECT_0, Win32::System::Threading::WaitForMultipleObjects,
     Win32::System::WindowsProgramming::INFINITE,
 };
 
@@ -37,8 +38,8 @@ impl Drop for AsyncQueue {
     }
 }
 
-const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
-const WAIT_ABANDONED_1: u32 = WAIT_ABANDONED_0 + 1;
+const WAIT_OBJECT_1: WIN32_ERROR = WIN32_ERROR(WAIT_OBJECT_0.0 + 1);
+const WAIT_ABANDONED_1: WIN32_ERROR = WIN32_ERROR(WAIT_ABANDONED_0.0 + 1);
 
 #[derive(Default)]
 struct DataReadinessHandler {
