@@ -776,10 +776,10 @@ dependencies = [
  "log",
  "netconfig",
  "nix 0.25.0",
- "socket2",
  "tokio",
  "tunio-core",
  "tunio-linux",
+ "tunio-utun",
  "tunio-wintun",
 ]
 
@@ -808,6 +808,21 @@ dependencies = [
  "log",
  "netconfig",
  "nix 0.25.0",
+ "tunio-core",
+]
+
+[[package]]
+name = "tunio-utun"
+version = "0.1.0"
+dependencies = [
+ "delegate 0.8.0",
+ "derive_builder",
+ "futures",
+ "libc",
+ "log",
+ "netconfig",
+ "nix 0.25.0",
+ "socket2",
  "tunio-core",
 ]
 

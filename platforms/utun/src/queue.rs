@@ -1,10 +1,9 @@
 use crate::Error;
-use io_lifetimes::OwnedFd;
 use libc::{PF_SYSTEM, SYSPROTO_CONTROL};
 use nix::sys::socket::SysControlAddr;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use std::mem;
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, OwnedFd};
 
 const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 

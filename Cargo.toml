@@ -28,7 +28,7 @@ tunio-wintun = { version = "0.1.0", path = "platforms/wintun" }
 tunio-linux = { version = "0.1.0", path = "platforms/linux" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-socket2 = "0.4.4"
+tunio-utun = { version = "0.1.0", path = "platforms/utun"}
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.25.0"
@@ -36,7 +36,7 @@ libc = "0.2.126"
 
 [features]
 default = []
-tokio = ["tunio-linux/tokio"]
+tokio = ["tunio-linux/tokio", "tunio-utun/tokio"]
 
 [dev-dependencies]
 tokio = { version = "1.20.0", features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
@@ -48,4 +48,4 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [workspace]
-members = ["wintun-sys", "core", "platforms/wintun", "platforms/linux"]
+members = ["wintun-sys", "core", "platforms/wintun", "platforms/linux", "platforms/utun"]

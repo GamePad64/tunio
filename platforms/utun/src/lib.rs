@@ -1,6 +1,6 @@
-use crate::traits::{DriverT, PlatformIfConfigT};
-use crate::Error;
 use derive_builder::Builder;
+use tunio_core::traits::{DriverT, PlatformIfConfigT};
+use tunio_core::Error;
 
 mod interface;
 mod queue;

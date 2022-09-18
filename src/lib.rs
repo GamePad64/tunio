@@ -21,5 +21,7 @@ cfg_if::cfg_if! {
     }else if #[cfg(target_os = "macos")] {
         pub type DefaultDriver = platform::utun::Driver;
         pub type DefaultInterface = platform::utun::Interface;
+        #[cfg(feature = "tokio")]
+        pub type DefaultAsyncInterface = platform::utun::TokioInterface;
     }
 }

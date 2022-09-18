@@ -42,4 +42,4 @@ pub trait InterfaceT: Sized {
 }
 
 pub trait SyncQueueT: Read + Write {}
-pub trait AsyncQueueT: AsyncRead + AsyncWrite {}
+pub trait AsyncQueueT: AsyncRead + AsyncWrite + Unpin {}

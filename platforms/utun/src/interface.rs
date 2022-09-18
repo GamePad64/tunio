@@ -1,19 +1,25 @@
-use crate::platform::util::sync::Queue;
-use crate::platform::util::QueueFdT;
-use crate::platform::utun::queue::create_device;
-use crate::platform::utun::{Driver, PlatformIfConfig};
-use crate::traits::{InterfaceT, SyncQueueT};
-use crate::{Error, IfConfig};
+use crate::queue::create_device;
+use crate::{Driver, PlatformIfConfig};
 use delegate::delegate;
+use futures::{AsyncRead, AsyncWrite};
 use netconfig::sys::InterfaceHandleExt;
 use std::io::{self, Read, Write};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tunio_core::config::IfConfig;
+use tunio_core::queue::syncfd::SyncFdQueue;
+#[cfg(feature = "tokio")]
+use tunio_core::queue::tokiofd::TokioFdQueue;
+use tunio_core::queue::FdQueueT;
+use tunio_core::traits::{AsyncQueueT, InterfaceT, SyncQueueT};
+use tunio_core::Error;
 
 pub struct UtunInterface<Q> {
     name: String,
     queue: Q,
 }
 
-impl<Q: QueueFdT> InterfaceT for UtunInterface<Q> {
+impl<Q: FdQueueT> InterfaceT for UtunInterface<Q> {
     type PlatformDriver = Driver;
     type PlatformIfConfig = PlatformIfConfig;
 
@@ -52,7 +58,7 @@ impl<Q> UtunInterface<Q> {
     }
 }
 
-pub type Interface = UtunInterface<Queue>;
+pub type Interface = UtunInterface<SyncFdQueue>;
 
 impl SyncQueueT for Interface {}
 
@@ -69,6 +75,29 @@ impl Write for Interface {
         to self.queue {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
             fn flush(&mut self) -> io::Result<()>;
+        }
+    }
+}
+
+#[cfg(feature = "tokio")]
+pub type AsyncInterface = UtunInterface<TokioFdQueue>;
+#[cfg(feature = "tokio")]
+impl AsyncQueueT for TokioInterface {}
+
+impl<Q: AsyncQueueT> AsyncRead for UtunInterface<Q> {
+    delegate! {
+        to Pin::new(&mut self.queue) {
+            fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>>;
+        }
+    }
+}
+
+impl<Q: AsyncQueueT> AsyncWrite for UtunInterface<Q> {
+    delegate! {
+        to Pin::new(&mut self.queue) {
+            fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>>;
+            fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
+            fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
         }
     }
 }
