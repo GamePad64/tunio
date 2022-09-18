@@ -1,8 +1,8 @@
 use super::HandleWrapper;
-use crate::Error;
 use log::error;
 use std::io;
 use std::sync::Arc;
+use tunio_core::Error;
 use widestring::U16CString;
 use windows::core::GUID;
 use wintun_sys::WINTUN_ADAPTER_HANDLE;
@@ -71,7 +71,7 @@ impl Drop for Adapter {
     }
 }
 
-pub fn encode_name(string: &str) -> Result<U16CString, Error> {
+fn encode_name(string: &str) -> Result<U16CString, Error> {
     let result = U16CString::from_str(string).map_err(|_| Error::InterfaceNameUnicodeError)?;
     match result.len() {
         0..=MAX_NAME => Ok(result),

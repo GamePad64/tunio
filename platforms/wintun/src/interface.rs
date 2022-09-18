@@ -2,17 +2,16 @@ use super::queue::SessionQueueT;
 use super::wrappers::{Adapter, Session};
 use super::PlatformIfConfig;
 use super::Queue;
-use crate::config::{IfConfig, Layer};
-use crate::platform::wintun::Driver;
-use crate::traits::InterfaceT;
-use crate::Error;
+use crate::Driver;
 use std::io;
 use std::io::{ErrorKind, Read, Write};
 use std::sync::Arc;
+use tunio_core::config::{IfConfig, Layer};
+use tunio_core::traits::InterfaceT;
+use tunio_core::Error;
 use windows::core::GUID;
 use windows::Win32::NetworkManagement::IpHelper::ConvertInterfaceLuidToIndex;
 use windows::Win32::NetworkManagement::Ndis::NET_LUID_LH;
-use wintun_sys;
 
 pub struct CommonInterface<Q: SessionQueueT> {
     wintun: Arc<wintun_sys::wintun>,
@@ -38,8 +37,8 @@ impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
 
         let adapter = Arc::new(Adapter::new(
             GUID::from_u128(params.platform.guid),
-            &*params.name,
-            &*params.platform.description,
+            &params.name,
+            &params.platform.description,
             wintun.clone(),
         )?);
 
@@ -81,29 +80,30 @@ impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
     }
 }
 
+impl<Q: SessionQueueT> CommonInterface<Q> {
+    pub(crate) fn inner_queue_mut(&mut self) -> io::Result<&mut Q> {
+        match &mut self.queue {
+            Some(queue) => Ok(queue),
+            None => Err(ErrorKind::BrokenPipe.into()),
+        }
+    }
+}
+
 pub type Interface = CommonInterface<Queue>;
 
 impl Read for Interface {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match &mut self.queue {
-            Some(queue) => queue.read(buf),
-            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
+    delegate::delegate! {
+        to self.inner_queue_mut()? {
+            fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>;
         }
     }
 }
 
 impl Write for Interface {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match &mut self.queue {
-            Some(queue) => queue.write(buf),
-            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match &mut self.queue {
-            Some(queue) => queue.flush(),
-            None => Err(io::Error::from(ErrorKind::BrokenPipe)),
+    delegate::delegate! {
+        to self.inner_queue_mut()? {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
+            fn flush(&mut self) -> io::Result<()>;
         }
     }
 }

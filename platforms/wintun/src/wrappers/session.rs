@@ -1,11 +1,11 @@
 use super::Adapter;
 use super::HandleWrapper;
-use crate::Error;
 use bytes::BufMut;
 use log::error;
 use std::io;
 use std::io::{Read, Write};
 use std::sync::Arc;
+use tunio_core::Error;
 use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_NO_MORE_ITEMS, HANDLE, WIN32_ERROR};
 use wintun_sys::{
     DWORD, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY, WINTUN_SESSION_HANDLE,

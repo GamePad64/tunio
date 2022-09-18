@@ -3,10 +3,9 @@
 pub mod platform;
 
 pub use tunio_core::config::*;
-pub use tunio_core::error::Error;
+pub use tunio_core::Error;
 
 pub use tunio_core::config;
-pub use tunio_core::error;
 pub use tunio_core::traits;
 
 cfg_if::cfg_if! {

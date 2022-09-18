@@ -1,5 +1,5 @@
-use crate::traits::PlatformIfConfigT;
 use derive_builder::Builder;
+use tunio_core::traits::PlatformIfConfigT;
 
 /// It is generally better to use [`PlatformIfConfigBuilder`] to create a new PlatformIfConfig instance.
 #[derive(Builder, Clone)]

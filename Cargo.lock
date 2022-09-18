@@ -450,16 +450,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lock_api"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
-dependencies = [
- "autocfg",
- "scopeguard",
-]
-
-[[package]]
 name = "log"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -614,29 +604,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "427c3892f9e783d91cc128285287e70a59e206ca452770ece88a76f7a3eddd72"
 
 [[package]]
-name = "parking_lot"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
-dependencies = [
- "lock_api",
- "parking_lot_core",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a279cbf25cb0757810394fbc1e359949b59e348145c643a939a525692e6929"
-dependencies = [
- "cfg-if",
- "libc",
- "redox_syscall",
- "smallvec",
- "windows-sys",
-]
-
-[[package]]
 name = "paste"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -670,15 +637,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bcdf212e9776fbcb2d23ab029360416bb1706b1aea2d1a5ba002727cbcab804"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "redox_syscall"
-version = "0.2.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f25bc4c7e55e0b0b7a1d43fb893f4fa1361d0abe38b9ce4f323c2adfe6ef42"
-dependencies = [
- "bitflags",
 ]
 
 [[package]]
@@ -724,12 +682,6 @@ name = "slab"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb703cfe953bccee95685111adeedb76fabe4e97549a58d16f03ea7b9367bb32"
-
-[[package]]
-name = "smallvec"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc88c725d61fc6c3132893370cac4a0200e3fedf5da8331c570664b1987f5ca2"
 
 [[package]]
 name = "socket2"
@@ -834,7 +786,6 @@ version = "0.3.0"
 dependencies = [
  "async-task",
  "blocking",
- "bytes",
  "cfg-if",
  "delegate 0.8.0",
  "derive_builder",
@@ -845,14 +796,11 @@ dependencies = [
  "log",
  "netconfig",
  "nix 0.25.0",
- "parking_lot",
  "socket2",
  "thiserror",
  "tokio",
  "tunio-core",
- "widestring",
- "windows 0.40.0",
- "wintun-sys",
+ "tunio-wintun",
 ]
 
 [[package]]
@@ -869,6 +817,25 @@ dependencies = [
  "log",
  "netconfig",
  "thiserror",
+]
+
+[[package]]
+name = "tunio-wintun"
+version = "0.1.0"
+dependencies = [
+ "async-task",
+ "blocking",
+ "bytes",
+ "cfg-if",
+ "delegate 0.8.0",
+ "derive_builder",
+ "futures",
+ "log",
+ "netconfig",
+ "tunio-core",
+ "widestring",
+ "windows 0.40.0",
+ "wintun-sys",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 use super::event::SafeEvent;
 use super::wrappers::Session;
-use crate::platform::wintun::queue::SessionQueueT;
+use crate::queue::SessionQueueT;
 use futures::{AsyncRead, AsyncWrite};
 use std::future::Future;
 use std::io::{self, Read, Write};

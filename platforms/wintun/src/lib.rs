@@ -11,12 +11,8 @@ pub use driver::Driver;
 pub use interface::Interface;
 pub use queue::Queue;
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "async-tokio")] {
-        mod tokio_interface;
-        mod tokio_queue;
+mod async_interface;
+mod async_queue;
 
-        pub use tokio_interface::AsyncInterface;
-        pub use tokio_queue::AsyncQueue;
-    }
-}
+pub use async_interface::AsyncInterface;
+pub use async_queue::AsyncQueue;

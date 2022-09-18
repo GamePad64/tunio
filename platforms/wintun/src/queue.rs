@@ -1,6 +1,6 @@
 use super::wrappers::Session;
-use crate::traits::SyncQueueT;
 use std::io::{self, Read, Write};
+use tunio_core::traits::SyncQueueT;
 
 pub trait SessionQueueT {
     fn new(session: Session) -> Self;
@@ -19,17 +19,18 @@ impl SessionQueueT for Queue {
 }
 
 impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.session.read(buf)
+    delegate::delegate! {
+        to self.session {
+            fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>;
+        }
     }
 }
 
 impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.session.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.session.flush()
+    delegate::delegate! {
+        to self.session {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
+            fn flush(&mut self) -> io::Result<()>;
+        }
     }
 }

@@ -1,9 +1,8 @@
 use super::logger::wintun_logger;
 use super::PlatformIfConfig;
-use crate::error::Error;
-use crate::traits::DriverT;
 use std::sync::Arc;
-use wintun_sys;
+use tunio_core::traits::DriverT;
+use tunio_core::Error;
 
 pub struct Driver {
     pub wintun: Arc<wintun_sys::wintun>,

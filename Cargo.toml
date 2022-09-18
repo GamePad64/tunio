@@ -26,11 +26,7 @@ blocking = "1.2.0"
 async-task = "4.3.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-widestring = "1.0.2"
-bytes = "1.2.0"
-wintun-sys = { version = "0.1.0", path = "wintun-sys" }
-windows = { version = "0.40.0", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_System_WindowsProgramming", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis"] }
-parking_lot = "0.12.1"
+tunio-wintun = { version = "0.1.0", path = "platforms/wintun" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 socket2 = "0.4.4"
@@ -53,4 +49,4 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [workspace]
-members = ["wintun-sys", "core"]
+members = ["wintun-sys", "core", "platforms/wintun"]

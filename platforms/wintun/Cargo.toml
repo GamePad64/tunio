@@ -1,0 +1,22 @@
+[package]
+name = "tunio-wintun"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.63"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.17"
+futures = "0.3.21"
+netconfig = { version = "0.2.0", path = "../../../netconfig" }
+derive_builder = "0.11.2"
+cfg-if = "1.0.0"
+delegate = "0.8.0"
+tunio-core = { version = "0.1.0", path = "../../core" }
+blocking = "1.2.0"
+async-task = "4.3.0"
+widestring = "1.0.2"
+bytes = "1.2.0"
+wintun-sys = { version = "0.1.0", path = "../../wintun-sys" }
+windows = { version = "0.40.0", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_System_WindowsProgramming", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis"] }
