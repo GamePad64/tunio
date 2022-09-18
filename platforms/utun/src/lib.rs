@@ -6,6 +6,8 @@ mod interface;
 mod queue;
 
 pub use interface::Interface;
+#[cfg(feature = "tokio")]
+pub use interface::TokioInterface;
 
 pub struct Driver {}
 

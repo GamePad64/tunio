@@ -12,6 +12,7 @@
       <sourceFolder url="file://$MODULE_DIR$/core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/platforms/linux/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/platforms/wintun/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/platforms/utun/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

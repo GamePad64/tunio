@@ -23,7 +23,7 @@ impl<Q: FdQueueT> InterfaceT for UtunInterface<Q> {
     type PlatformDriver = Driver;
     type PlatformIfConfig = PlatformIfConfig;
 
-    fn new(
+    fn new_up(
         _driver: &mut Self::PlatformDriver,
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
@@ -33,6 +33,15 @@ impl<Q: FdQueueT> InterfaceT for UtunInterface<Q> {
             name: params.name,
             queue,
         })
+    }
+
+    fn new(
+        driver: &mut Self::PlatformDriver,
+        params: IfConfig<Self::PlatformIfConfig>,
+    ) -> Result<Self, Error> {
+        let mut interface = Self::new_up(driver, params)?;
+        interface.down()?;
+        Ok(interface)
     }
 
     fn up(&mut self) -> Result<(), Error> {
@@ -62,7 +71,7 @@ pub type Interface = UtunInterface<SyncFdQueue>;
 
 impl SyncQueueT for Interface {}
 
-impl Read for Interface {
+impl<Q: SyncQueueT> Read for UtunInterface<Q> {
     delegate! {
         to self.queue {
             fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error>;
@@ -70,7 +79,7 @@ impl Read for Interface {
     }
 }
 
-impl Write for Interface {
+impl<Q: SyncQueueT> Write for UtunInterface<Q> {
     delegate! {
         to self.queue {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
@@ -80,7 +89,7 @@ impl Write for Interface {
 }
 
 #[cfg(feature = "tokio")]
-pub type AsyncInterface = UtunInterface<TokioFdQueue>;
+pub type TokioInterface = UtunInterface<TokioFdQueue>;
 #[cfg(feature = "tokio")]
 impl AsyncQueueT for TokioInterface {}
 
