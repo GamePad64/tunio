@@ -13,7 +13,7 @@ use tunio_core::config::IfConfig;
 use tunio_core::queue::syncfd::SyncFdQueue;
 use tunio_core::queue::tokiofd::TokioFdQueue;
 use tunio_core::queue::FdQueueT;
-use tunio_core::traits::{InterfaceT, SyncQueueT};
+use tunio_core::traits::{AsyncQueueT, InterfaceT, SyncQueueT};
 use tunio_core::Error;
 
 pub struct LinuxInterface<Q> {
@@ -65,7 +65,7 @@ pub type Interface = LinuxInterface<SyncFdQueue>;
 
 impl SyncQueueT for Interface {}
 
-impl Read for Interface {
+impl<Q: SyncQueueT> Read for LinuxInterface<Q> {
     delegate! {
         to self.queue {
             fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error>;
@@ -73,7 +73,7 @@ impl Read for Interface {
     }
 }
 
-impl Write for Interface {
+impl<Q: SyncQueueT> Write for LinuxInterface<Q> {
     delegate! {
         to self.queue {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize>;
@@ -84,7 +84,7 @@ impl Write for Interface {
 
 pub type AsyncInterface = LinuxInterface<TokioFdQueue>;
 
-impl AsyncRead for AsyncInterface {
+impl<Q: AsyncQueueT + Unpin> AsyncRead for LinuxInterface<Q> {
     delegate! {
         to Pin::new(&mut self.queue) {
             fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>>;
@@ -92,7 +92,7 @@ impl AsyncRead for AsyncInterface {
     }
 }
 
-impl AsyncWrite for AsyncInterface {
+impl<Q: AsyncQueueT + Unpin> AsyncWrite for LinuxInterface<Q> {
     delegate! {
         to Pin::new(&mut self.queue) {
             fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>>;
