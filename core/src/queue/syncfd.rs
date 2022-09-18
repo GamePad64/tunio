@@ -1,13 +1,9 @@
-use crate::async_queue::AsyncQueue;
+use crate::queue::FdQueueT;
 use crate::traits::SyncQueueT;
 use delegate::delegate;
 use std::fs;
 use std::io::{self, Read, Write};
-use std::os::unix::io::OwnedFd;
-
-pub trait FdQueueT {
-    fn new(device: OwnedFd) -> Self;
-}
+use std::os::unix::io::{AsRawFd, OwnedFd, RawFd};
 
 pub struct SyncFdQueue(fs::File);
 
@@ -36,10 +32,8 @@ impl Write for SyncFdQueue {
     }
 }
 
-pub type AsyncFdQueue = AsyncQueue<SyncFdQueue>;
-
-impl FdQueueT for AsyncFdQueue {
-    fn new(device: OwnedFd) -> Self {
-        SyncFdQueue::new(device).into()
+impl AsRawFd for SyncFdQueue {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.as_raw_fd()
     }
 }

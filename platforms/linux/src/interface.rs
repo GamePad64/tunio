@@ -10,9 +10,11 @@ use std::io::{Read, Write};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tunio_core::config::IfConfig;
-use tunio_core::error::Error;
-use tunio_core::file_queue::{AsyncFdQueue, FdQueueT, SyncFdQueue};
+use tunio_core::queue::syncfd::SyncFdQueue;
+use tunio_core::queue::tokiofd::TokioFdQueue;
+use tunio_core::queue::FdQueueT;
 use tunio_core::traits::{InterfaceT, SyncQueueT};
+use tunio_core::Error;
 
 pub struct LinuxInterface<Q> {
     name: String,
@@ -21,7 +23,7 @@ pub struct LinuxInterface<Q> {
 
 impl<Q> LinuxInterface<Q> {
     pub fn name(&self) -> &str {
-        &*self.name
+        &self.name
     }
 }
 
@@ -33,13 +35,13 @@ impl<Q: FdQueueT> InterfaceT for LinuxInterface<Q> {
         _driver: &mut Self::PlatformDriver,
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
-        let Device { device, name } = create_device(&*params.name, params.layer)?;
+        let Device { device, name } = create_device(&params.name, params.layer)?;
         let queue = Q::new(device.into());
 
-        if &*params.name != name {
+        if params.name != name {
             debug!(
                 "Interface name is changed \"{}\" -> \"{}\"",
-                &*params.name, name
+                params.name, name
             );
         }
 
@@ -80,7 +82,7 @@ impl Write for Interface {
     }
 }
 
-pub type AsyncInterface = LinuxInterface<AsyncFdQueue>;
+pub type AsyncInterface = LinuxInterface<TokioFdQueue>;
 
 impl AsyncRead for AsyncInterface {
     delegate! {

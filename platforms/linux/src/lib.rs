@@ -12,8 +12,8 @@ mod interface;
 mod queue;
 
 use derive_builder::Builder;
-use tunio_core::error::Error;
 use tunio_core::traits::{DriverT, PlatformIfConfigT};
+use tunio_core::Error;
 
 pub use interface::{AsyncInterface, Interface, LinuxInterface};
 

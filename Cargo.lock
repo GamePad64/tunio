@@ -784,8 +784,6 @@ dependencies = [
 name = "tunio"
 version = "0.3.0"
 dependencies = [
- "async-task",
- "blocking",
  "cfg-if",
  "delegate 0.8.0",
  "derive_builder",
@@ -797,9 +795,9 @@ dependencies = [
  "netconfig",
  "nix 0.25.0",
  "socket2",
- "thiserror",
  "tokio",
  "tunio-core",
+ "tunio-linux",
  "tunio-wintun",
 ]
 
@@ -817,6 +815,22 @@ dependencies = [
  "log",
  "netconfig",
  "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "tunio-linux"
+version = "0.1.0"
+dependencies = [
+ "delegate 0.8.0",
+ "derive_builder",
+ "futures",
+ "libc",
+ "log",
+ "netconfig",
+ "nix 0.25.0",
+ "tokio",
+ "tunio-core",
 ]
 
 [[package]]

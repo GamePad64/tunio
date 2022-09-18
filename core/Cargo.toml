@@ -16,6 +16,7 @@ thiserror = "1.0.31"
 blocking = "1.2.0"
 async-fs = "1.6.0"
 async-lock = "2.5.0"
+tokio = { version = "1.21.1", features = ["net", "rt"] }
 
 [features]
 default = []
