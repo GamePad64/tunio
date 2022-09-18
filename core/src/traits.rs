@@ -1,6 +1,7 @@
 use crate::config::{IfConfig, IfConfigBuilder};
 use crate::error::Error;
 use futures::{AsyncRead, AsyncWrite};
+use std::io;
 use std::io::{Read, Write};
 
 pub trait PlatformIfConfigT: Default + Clone {

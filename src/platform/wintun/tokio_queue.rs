@@ -2,11 +2,11 @@ use super::event::SafeEvent;
 use super::wrappers::Session;
 use crate::platform::wintun::queue::SessionQueueT;
 use futures::{AsyncRead, AsyncWrite};
-use parking_lot::Mutex;
+use std::future::Future;
 use std::io::{self, Read, Write};
 use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{Context, Poll, Waker};
+use std::task::{Context, Poll};
 use windows::Win32::Foundation::WIN32_ERROR;
 use windows::{
     Win32::Foundation::HANDLE, Win32::Foundation::WAIT_ABANDONED_0,
@@ -14,20 +14,33 @@ use windows::{
     Win32::System::WindowsProgramming::INFINITE,
 };
 
-pub struct AsyncQueue {
-    session: Arc<Mutex<Session>>,
+enum WaitingStopReason {
+    Shutdown,
+    Ready,
+}
 
+enum ReadState {
+    Waiting(Option<async_task::Task<WaitingStopReason>>),
+    Idle,
+    Closed,
+}
+
+pub struct AsyncQueue {
+    session: Session,
+
+    read_state: ReadState,
     shutdown_event: Arc<SafeEvent>,
-    data_ready: Arc<Mutex<DataReadinessHandler>>,
 }
 
 impl SessionQueueT for AsyncQueue {
     fn new(session: Session) -> Self {
         Self {
-            session: Arc::new(Mutex::new(session)),
+            session,
+
+            read_state: ReadState::Idle,
+
             // Manual reset, because we use this event once and it must fire on all threads
             shutdown_event: Arc::new(SafeEvent::new(true, false)),
-            data_ready: Default::default(),
         }
     }
 }
@@ -38,34 +51,16 @@ impl Drop for AsyncQueue {
     }
 }
 
-const WAIT_OBJECT_1: WIN32_ERROR = WIN32_ERROR(WAIT_OBJECT_0.0 + 1);
-const WAIT_ABANDONED_1: WIN32_ERROR = WIN32_ERROR(WAIT_ABANDONED_0.0 + 1);
+fn wait_for_read(read_event: HANDLE, shutdown_event: Arc<SafeEvent>) -> WaitingStopReason {
+    const WAIT_OBJECT_1: WIN32_ERROR = WIN32_ERROR(WAIT_OBJECT_0.0 + 1);
+    const WAIT_ABANDONED_1: WIN32_ERROR = WIN32_ERROR(WAIT_ABANDONED_0.0 + 1);
 
-#[derive(Default)]
-struct DataReadinessHandler {
-    tokio_wait_thread: Option<tokio::task::JoinHandle<()>>,
-    waker: Option<Waker>,
-}
-
-fn wait_for_read(
-    read_event: HANDLE,
-    shutdown_event: Arc<SafeEvent>,
-    data_ready: Arc<Mutex<DataReadinessHandler>>,
-) {
-    let result =
-        unsafe { WaitForMultipleObjects(&[shutdown_event.handle(), read_event], false, INFINITE) };
-    match result {
-        // Shutwown
-        WAIT_OBJECT_0 => {}
+    match unsafe { WaitForMultipleObjects(&[shutdown_event.handle(), read_event], false, INFINITE) }
+    {
+        // Shutdown
+        WAIT_OBJECT_0 | WAIT_ABANDONED_0 => WaitingStopReason::Shutdown,
         // Ready for read
-        WAIT_OBJECT_1 => {
-            let mut data_ready = data_ready.lock();
-            if let Some(waker) = (*data_ready).waker.take() {
-                waker.wake()
-            }
-        }
-        // Shutdown event deleted
-        WAIT_ABANDONED_0 => {}
+        WAIT_OBJECT_1 => WaitingStopReason::Ready,
         // Read event deleted
         WAIT_ABANDONED_1 => {
             panic!("Read event deleted unexpectedly");
@@ -79,63 +74,55 @@ fn wait_for_read(
 
 impl AsyncRead for AsyncQueue {
     fn poll_read(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
-        let mut data_ready = self.data_ready.lock();
-        if (*data_ready).waker.is_some() {
-            // Waker has not been executed yet, so I/O is still not ready. Replace the waker.
-            (*data_ready).waker = Some(cx.waker().clone());
-            return Poll::Pending;
-        }
+        loop {
+            match &mut self.read_state {
+                ReadState::Waiting(task) => {
+                    let mut task = task.take().unwrap();
 
-        let mut session = self.session.lock();
-        match session.read(buf) {
-            Ok(n) => {
-                // No need to schedule waker
-                Poll::Ready(Ok(n))
-            }
-            Err(e) => {
-                if e.kind() == io::ErrorKind::WouldBlock {
-                    // Schedule waker for execution later
-                    (*data_ready).waker = Some(cx.waker().clone());
+                    self.read_state = match Pin::new(&mut task).poll(cx) {
+                        Poll::Ready(WaitingStopReason::Shutdown) => ReadState::Closed,
+                        Poll::Ready(WaitingStopReason::Ready) => ReadState::Idle,
+                        Poll::Pending => ReadState::Waiting(Some(task)),
+                    };
 
-                    let read_event = session.read_event();
-                    let inner_shutdown_event = self.shutdown_event.clone();
-                    let inner_data_ready = self.data_ready.clone();
-
-                    (*data_ready).tokio_wait_thread =
-                        Some(tokio::task::spawn_blocking(move || {
-                            wait_for_read(read_event, inner_shutdown_event, inner_data_ready);
-                        }));
-                    Poll::Pending
-                } else {
-                    Poll::Ready(Err(e))
+                    if let ReadState::Waiting(..) = self.read_state {
+                        return Poll::Pending;
+                    }
                 }
+                ReadState::Idle => match self.session.read(buf) {
+                    Ok(n) => return Poll::Ready(Ok(n)),
+                    Err(e) => {
+                        if e.kind() == io::ErrorKind::WouldBlock {
+                            let read_event = self.session.read_event();
+                            let inner_shutdown_event = self.shutdown_event.clone();
+
+                            self.read_state =
+                                ReadState::Waiting(Some(blocking::unblock(move || {
+                                    wait_for_read(read_event, inner_shutdown_event)
+                                })));
+                        } else {
+                            return Poll::Ready(Err(e));
+                        }
+                    }
+                },
+                ReadState::Closed => return Poll::Ready(Ok(0)),
             }
         }
     }
 }
 
 impl AsyncWrite for AsyncQueue {
+    // Write to wintun is already nonblocking
     fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        mut self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        match self.session.lock().write(buf) {
-            Ok(len) => Poll::Ready(Ok(len)),
-            Err(err) => {
-                if err.kind() != io::ErrorKind::WouldBlock {
-                    Poll::Ready(Err(err))
-                } else {
-                    let waker = cx.waker().clone();
-                    let _ = tokio::task::spawn_local(async { waker.wake() });
-                    Poll::Pending
-                }
-            }
-        }
+        Poll::Ready(self.session.write(buf))
     }
 
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
@@ -143,7 +130,7 @@ impl AsyncWrite for AsyncQueue {
         Poll::Ready(Ok(()))
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         // Not implemented by driver
         Poll::Ready(Ok(()))
     }

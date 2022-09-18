@@ -832,6 +832,8 @@ dependencies = [
 name = "tunio"
 version = "0.3.0"
 dependencies = [
+ "async-task",
+ "blocking",
  "bytes",
  "cfg-if",
  "delegate 0.8.0",

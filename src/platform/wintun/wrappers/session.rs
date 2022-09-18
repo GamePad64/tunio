@@ -11,18 +11,18 @@ use wintun_sys::{
     DWORD, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY, WINTUN_SESSION_HANDLE,
 };
 
-struct PacketReader {
+struct PacketReader<'a> {
     handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
-    wintun: Arc<wintun_sys::wintun>,
+    wintun: &'a wintun_sys::wintun,
 
     ptr: *const u8,
     len: usize,
 }
 
-impl PacketReader {
+impl<'a> PacketReader<'a> {
     pub fn read(
         handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
-        wintun: Arc<wintun_sys::wintun>,
+        wintun: &'a wintun_sys::wintun,
     ) -> io::Result<Self> {
         let mut len: DWORD = 0;
         let ptr = unsafe { wintun.WintunReceivePacket(handle.0, &mut len) };
@@ -44,7 +44,7 @@ impl PacketReader {
     }
 }
 
-impl Drop for PacketReader {
+impl<'a> Drop for PacketReader<'a> {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
             unsafe {
@@ -101,29 +101,27 @@ impl Session {
         }
         Ok(())
     }
-
-    fn map_blocking(err: io::Error, win32_error: WIN32_ERROR) -> io::Error {
-        if let Some(os_error) = err.raw_os_error() {
-            if os_error == win32_error.0 as _ {
-                return io::Error::from(io::ErrorKind::WouldBlock);
-            }
-        }
-        err
-    }
 }
 
 impl Read for Session {
     fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        let packet = PacketReader::read(self.handle.clone(), self.wintun.clone())
-            .map_err(|e| Self::map_blocking(e, ERROR_NO_MORE_ITEMS))?;
-
-        let packet_slice = packet.as_slice();
-        buf.put(packet_slice);
-        Ok(packet_slice.len())
+        let packet = PacketReader::read(self.handle.clone(), &self.wintun);
+        match packet {
+            Ok(packet) => {
+                let packet_slice = packet.as_slice();
+                buf.put(packet_slice);
+                Ok(packet_slice.len())
+            }
+            Err(e) => match error_eq(&e, ERROR_NO_MORE_ITEMS) {
+                true => Err(io::ErrorKind::WouldBlock.into()),
+                false => Err(e),
+            },
+        }
     }
 }
 
 impl Write for Session {
+    // does not block, as WintunAllocateSendPacket and WintunSendPacket are executed right one ofter another
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let packet = unsafe {
             self.wintun
@@ -137,10 +135,11 @@ impl Write for Session {
             }
             Ok(buf.len())
         } else {
-            Err(Self::map_blocking(
-                io::Error::last_os_error(),
-                ERROR_BUFFER_OVERFLOW,
-            ))
+            let e = io::Error::last_os_error();
+            match error_eq(&e, ERROR_BUFFER_OVERFLOW) {
+                true => panic!("send buffer overflow"),
+                false => Err(e),
+            }
         }
     }
 
@@ -154,5 +153,12 @@ impl Drop for Session {
         unsafe {
             self.wintun.WintunEndSession(self.handle.0);
         }
+    }
+}
+
+fn error_eq(err: &io::Error, win32_error: WIN32_ERROR) -> bool {
+    match err.raw_os_error() {
+        None => false,
+        Some(os_error) => os_error == win32_error.0 as _,
     }
 }
