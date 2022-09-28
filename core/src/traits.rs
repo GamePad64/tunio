@@ -1,5 +1,5 @@
 use crate::config::{IfConfig, IfConfigBuilder};
-use crate::error::Error;
+use crate::Error;
 use futures::{AsyncRead, AsyncWrite};
 use std::io::{Read, Write};
 
@@ -10,13 +10,7 @@ pub trait PlatformIfConfigT: Default + Clone {
 pub trait DriverT: Sized {
     type PlatformIfConfig: PlatformIfConfigT;
 
-    fn new() -> Result<Self, Error>
-    where
-        Self: Sized;
-
-    fn if_config_builder() -> IfConfigBuilder<Self::PlatformIfConfig> {
-        IfConfigBuilder::default()
-    }
+    fn new() -> Result<Self, Error>;
 }
 
 pub trait InterfaceT: Sized {
@@ -39,6 +33,10 @@ pub trait InterfaceT: Sized {
     fn up(&mut self) -> Result<(), Error>;
     fn down(&mut self) -> Result<(), Error>;
     fn handle(&self) -> netconfig::InterfaceHandle;
+
+    fn config_builder() -> IfConfigBuilder<Self::PlatformIfConfig> {
+        IfConfigBuilder::default()
+    }
 }
 
 pub trait SyncQueueT: Read + Write {}

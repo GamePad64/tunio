@@ -11,7 +11,7 @@ async fn main() {
     env_logger::init();
     let mut driver = DefaultDriver::new().unwrap();
 
-    let mut interface_config = DefaultDriver::if_config_builder();
+    let mut interface_config = DefaultAsyncInterface::config_builder();
     interface_config.name("name".into());
     #[cfg(target_os = "windows")]
     interface_config

@@ -24,7 +24,7 @@ pub struct IfConfig<P: PlatformIfConfigT> {
     pub platform: P,
 }
 
-impl<P: PlatformIfConfigT + Clone> IfConfigBuilder<P> {
+impl<P: PlatformIfConfigT> IfConfigBuilder<P> {
     /// Platform-specific settings
     pub fn platform<F, E>(&mut self, f: F) -> Result<&mut Self, E>
     where

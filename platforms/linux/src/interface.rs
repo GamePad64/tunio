@@ -36,7 +36,7 @@ impl<Q: FdQueueT> InterfaceT for LinuxInterface<Q> {
         _driver: &mut Self::PlatformDriver,
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
-        let Device { device, name } = create_device(&params.name, params.layer)?;
+        let Device { device, name } = create_device(&params.name, params.layer, Q::BLOCKING)?;
         let queue = Q::new(device.into());
 
         if params.name != name {

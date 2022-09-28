@@ -27,7 +27,7 @@ impl<Q: FdQueueT> InterfaceT for UtunInterface<Q> {
         _driver: &mut Self::PlatformDriver,
         params: IfConfig<Self::PlatformIfConfig>,
     ) -> Result<Self, Error> {
-        let queue = Q::new(create_device(&params.name)?);
+        let queue = Q::new(create_device(&params.name, Q::BLOCKING)?);
 
         Ok(Self {
             name: params.name,

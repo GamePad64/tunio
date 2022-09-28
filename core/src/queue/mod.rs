@@ -5,5 +5,7 @@ pub mod syncfd;
 pub mod tokiofd;
 
 pub trait FdQueueT {
+    const BLOCKING: bool;
+
     fn new(device: OwnedFd) -> Self;
 }

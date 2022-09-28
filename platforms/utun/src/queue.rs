@@ -7,7 +7,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, OwnedFd};
 
 const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
-pub(crate) fn create_device(name: &str) -> Result<OwnedFd, Error> {
+pub(crate) fn create_device(name: &str, blocking: bool) -> Result<OwnedFd, Error> {
     let mut id = match name {
         s if s.starts_with("utun") => s[4..].parse().map_err(|_| Error::InterfaceNameInvalid),
         _ => Err(Error::InterfaceNameInvalid),
@@ -32,6 +32,9 @@ pub(crate) fn create_device(name: &str) -> Result<OwnedFd, Error> {
         })
     }
     .unwrap();
+    if !blocking {
+        tun_device.set_nonblocking(true)?;
+    }
     tun_device.connect(&sa).unwrap();
 
     Ok(unsafe { OwnedFd::from_raw_fd(tun_device.into_raw_fd()) })

@@ -10,6 +10,8 @@ pub struct SyncFdQueue(fs::File);
 impl SyncQueueT for SyncFdQueue {}
 
 impl FdQueueT for SyncFdQueue {
+    const BLOCKING: bool = true;
+
     fn new(device: OwnedFd) -> Self {
         Self(device.into())
     }

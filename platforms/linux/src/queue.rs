@@ -2,6 +2,7 @@ use crate::Error;
 use libc::{IFF_NO_PI, IFF_TAP, IFF_TUN};
 use netconfig::sys::posix::ifreq::ifreq;
 use std::fs;
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::io::AsRawFd;
 use tunio_core::config::Layer;
 
@@ -17,11 +18,13 @@ pub(crate) struct Device {
     pub name: String,
 }
 
-pub(crate) fn create_device(name: &str, layer: Layer) -> Result<Device, Error> {
-    let tun_device = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open("/dev/net/tun")?;
+pub(crate) fn create_device(name: &str, layer: Layer, blocking: bool) -> Result<Device, Error> {
+    let mut open_opts = fs::OpenOptions::new();
+    open_opts.read(true).write(true);
+    if !blocking {
+        open_opts.custom_flags(libc::O_NONBLOCK);
+    }
+    let tun_device = open_opts.open("/dev/net/tun")?;
 
     let mut init_flags = match layer {
         Layer::L2 => IFF_TAP,

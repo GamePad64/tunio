@@ -15,6 +15,8 @@ pub struct TokioFdQueue {
 impl AsyncQueueT for TokioFdQueue {}
 
 impl FdQueueT for TokioFdQueue {
+    const BLOCKING: bool = false;
+
     fn new(device: OwnedFd) -> Self {
         Self {
             inner: AsyncFd::new(SyncFdQueue::new(device)).unwrap(),
