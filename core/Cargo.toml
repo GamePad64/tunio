@@ -2,18 +2,21 @@
 name = "tunio-core"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.17"
-futures = "0.3.21"
-netconfig = { version = "0.2.0", path = "../../netconfig" }
-derive_builder = "0.11.2"
-cfg-if = "1.0.0"
-delegate = "0.8.0"
+log.workspace = true
+futures.workspace = true
+netconfig.workspace = true
+derive_builder.workspace = true
+delegate.workspace = true
 thiserror = "1.0.31"
-tokio = { version = "1.21.1", features = ["net", "rt"], optional = true }
+tokio = { workspace = true, features = ["net"], optional = true }
 
 [features]
 tokio = ["dep:tokio"]

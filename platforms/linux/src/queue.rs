@@ -40,7 +40,7 @@ pub(crate) fn create_device(name: &str, layer: Layer, blocking: bool) -> Result<
     // Name can change due to formatting
     Ok(Device {
         device: tun_device,
-        name: String::try_from(&req.ifr_ifrn)
+        name: String::try_from(req.ifr_ifrn)
             .map_err(|e| Error::InterfaceNameError(format!("{e:?}")))?,
     })
 }

@@ -4,7 +4,7 @@ use super::PlatformIfConfig;
 use delegate::delegate;
 use futures::{AsyncRead, AsyncWrite};
 use log::debug;
-use netconfig::sys::InterfaceHandleExt;
+use netconfig::sys::InterfaceExt;
 use std::io;
 use std::io::{Read, Write};
 use std::pin::Pin;
@@ -57,8 +57,8 @@ impl<Q: FdQueueT> InterfaceT for LinuxInterface<Q> {
         Ok(self.handle().set_up(false)?)
     }
 
-    fn handle(&self) -> netconfig::InterfaceHandle {
-        netconfig::InterfaceHandle::try_from_name(self.name()).unwrap()
+    fn handle(&self) -> netconfig::Interface {
+        netconfig::Interface::try_from_name(self.name()).unwrap()
     }
 }
 

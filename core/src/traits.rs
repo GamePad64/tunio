@@ -32,7 +32,7 @@ pub trait InterfaceT: Sized {
 
     fn up(&mut self) -> Result<(), Error>;
     fn down(&mut self) -> Result<(), Error>;
-    fn handle(&self) -> netconfig::InterfaceHandle;
+    fn handle(&self) -> netconfig::Interface;
 
     fn config_builder() -> IfConfigBuilder<Self::PlatformIfConfig> {
         IfConfigBuilder::default()
