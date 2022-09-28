@@ -7,9 +7,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 use tunio_core::Error;
 use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_NO_MORE_ITEMS, HANDLE, WIN32_ERROR};
-use wintun_sys::{
-    DWORD, WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY, WINTUN_SESSION_HANDLE,
-};
+use wintun_sys::{WINTUN_MAX_RING_CAPACITY, WINTUN_MIN_RING_CAPACITY, WINTUN_SESSION_HANDLE};
 
 struct PacketReader<'a> {
     handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
@@ -24,7 +22,7 @@ impl<'a> PacketReader<'a> {
         handle: HandleWrapper<WINTUN_SESSION_HANDLE>,
         wintun: &'a wintun_sys::wintun,
     ) -> io::Result<Self> {
-        let mut len: DWORD = 0;
+        let mut len: u32 = 0;
         let ptr = unsafe { wintun.WintunReceivePacket(handle.0, &mut len) };
 
         if !ptr.is_null() {
@@ -84,7 +82,7 @@ impl Session {
 
     #[allow(dead_code)]
     pub fn read_event(&self) -> HANDLE {
-        HANDLE(unsafe { self.wintun.WintunGetReadWaitEvent(self.handle.0) as isize })
+        unsafe { self.wintun.WintunGetReadWaitEvent(self.handle.0) }
     }
 
     pub fn validate_capacity(capacity: u32) -> Result<(), Error> {
