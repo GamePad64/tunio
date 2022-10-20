@@ -55,7 +55,7 @@ categories = ["os", "network-programming"]
 [workspace.dependencies]
 log = "0.4.17"
 netconfig = "0.4.0"
-futures = "0.3.21"
+futures = "0.3.25"
 derive_builder = "0.11.2"
 delegate = "0.8.0"
 tunio-core = { version = "0.1.0", path = "core" }
