@@ -66,7 +66,7 @@ impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
         Ok(())
     }
 
-    fn handle(&self) -> netconfig::InterfaceHandle {
+    fn handle(&self) -> netconfig::Interface {
         let mut index = 0;
         let luid = NET_LUID_LH {
             Value: self.adapter.luid(),
@@ -76,7 +76,7 @@ impl<Q: SessionQueueT> InterfaceT for CommonInterface<Q> {
             ConvertInterfaceLuidToIndex(&luid, &mut index).unwrap();
         }
 
-        netconfig::InterfaceHandle::try_from_index(index).unwrap()
+        netconfig::Interface::try_from_index(index).unwrap()
     }
 }
 
