@@ -1,8 +1,8 @@
 [package]
 name = "tunio-wintun"
 version = "0.1.0"
-edition = "2021"
-rust-version = "1.63"
+edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 categories.workspace = true

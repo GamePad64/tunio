@@ -3,6 +3,9 @@ updates:
   - package-ecosystem: cargo
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
     open-pull-requests-limit: 10
     target-branch: main
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]

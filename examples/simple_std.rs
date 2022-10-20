@@ -8,7 +8,7 @@ fn main() {
     // but it will work in some cases. If you need another driver, then import and use it instead.
     let mut driver = DefaultDriver::new().unwrap();
     // Preparing configuration for new interface. We use `Builder` pattern for this.
-    let if_config = DefaultDriver::if_config_builder()
+    let if_config = DefaultInterface::config_builder()
         .name("iface1".to_string())
         .build()
         .unwrap();
