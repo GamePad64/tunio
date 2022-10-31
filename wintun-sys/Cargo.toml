@@ -11,7 +11,7 @@ rust-version = "1.64"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libloading = "0.7.3"
-windows = { version = "0.42.0", features = ["Win32_Foundation", "Win32_NetworkManagement_Ndis"] }
+windows = { version = "0.43.0", features = ["Win32_Foundation", "Win32_NetworkManagement_Ndis"] }
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 bindgen = "0.61.0"
