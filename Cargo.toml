@@ -32,7 +32,7 @@ tunio-utun = { version = "0.1.0", path = "platforms/utun"}
 
 [features]
 default = []
-tokio = ["tunio-linux/tokio", "tunio-utun/tokio"]
+tokio = ["tunio-linux/tokio", "tunio-utun/tokio", "tunio-wintun/tokio"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
