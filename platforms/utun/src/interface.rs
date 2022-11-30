@@ -2,7 +2,7 @@ use crate::queue::create_device;
 use crate::{Driver, PlatformIfConfig};
 use delegate::delegate;
 use futures::{AsyncRead, AsyncWrite};
-use netconfig::sys::InterfaceHandleExt;
+use netconfig::sys::InterfaceExt;
 use std::io::{self, Read, Write};
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -45,19 +45,23 @@ impl<Q: FdQueueT> InterfaceT for UtunInterface<Q> {
     }
 
     fn up(&mut self) -> Result<(), Error> {
-        Ok(self.handle().set_flags(
-            (libc::IFF_POINTOPOINT | libc::IFF_MULTICAST | libc::IFF_UP | libc::IFF_RUNNING) as _,
-        )?)
+        let handle = self.handle();
+        handle.set_up(true)?;
+        handle.set_running(true)?;
+
+        Ok(())
     }
 
     fn down(&mut self) -> Result<(), Error> {
-        Ok(self
-            .handle()
-            .set_flags((libc::IFF_POINTOPOINT | libc::IFF_MULTICAST) as _)?)
+        let handle = self.handle();
+        handle.set_up(false)?;
+        handle.set_running(false)?;
+
+        Ok(())
     }
 
-    fn handle(&self) -> netconfig::InterfaceHandle {
-        netconfig::InterfaceHandle::try_from_name(self.name()).unwrap()
+    fn handle(&self) -> netconfig::Interface {
+        netconfig::Interface::try_from_name(self.name()).unwrap()
     }
 }
 
