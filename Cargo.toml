@@ -37,7 +37,7 @@ tokio = ["tunio-linux/tokio", "tunio-utun/tokio"]
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread", "signal", "sync", "io-util"] }
 etherparse = "0.12.0"
-env_logger = "0.9.0"
+env_logger = "0.10.0"
 
 [package.metadata.docs.rs]
 all-features = true
