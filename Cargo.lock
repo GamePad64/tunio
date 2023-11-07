@@ -967,6 +967,7 @@ dependencies = [
  "futures",
  "log",
  "netconfig",
+ "tokio",
  "tunio-core",
  "widestring",
  "windows",
