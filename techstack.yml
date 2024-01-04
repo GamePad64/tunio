@@ -1,7 +1,8 @@
 repo_name: GamePad64/tunio
 report_id: 7fe004d67c85ffeba1c8099082f6a876
+version: 0.1
 repo_type: Public
-timestamp: '2023-11-09T15:18:54+00:00'
+timestamp: '2024-01-04T14:58:47+00:00'
 requested_by: GamePad64
 provider: github
 branch: main
@@ -15,6 +16,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/no-img-open-source.png
+  detection_source_url: https://github.com/GamePad64/tunio
   detection_source: Repo Metadata
 - name: Rust
   description: A safe, concurrent, practical language
@@ -24,6 +26,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/1070/v7txhrjp9pdqrkdtxxp0.png
+  detection_source_url: https://github.com/GamePad64/tunio
   detection_source: Repo Metadata
 - name: Git
   description: Fast, scalable, distributed revision control system
@@ -33,6 +36,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Version Control System
   image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source_url: https://github.com/GamePad64/tunio
   detection_source: Repo Metadata
 - name: GitHub Actions
   description: Automate your workflow from idea to production
@@ -42,7 +46,8 @@ tools:
   category: Build, Test, Deploy
   sub_category: Continuous Integration
   image_url: https://img.stackshare.io/service/11563/actions.png
-  detection_source: ".github/workflows/wintun.yml"
+  detection_source_url: https://github.com/GamePad64/tunio/blob/main/.github/workflows/tunio.yml
+  detection_source: ".github/workflows/tunio.yml"
   last_updated_by: Alexander Shishenko
   last_updated_on: 2022-09-28 18:54:00.000000000 Z
 - name: PowerShell
@@ -53,4 +58,5 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/3681/powershell-logo.png
+  detection_source_url: https://github.com/GamePad64/tunio
   detection_source: Repo Metadata
