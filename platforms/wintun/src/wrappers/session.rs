@@ -135,7 +135,11 @@ impl Write for Session {
         } else {
             let e = io::Error::last_os_error();
             match error_eq(&e, ERROR_BUFFER_OVERFLOW) {
-                true => panic!("send buffer overflow"),
+                true => {
+                    // Return success to the caller, but the packet is actually 
+                    // dropped (silently)
+                    Ok(buf.len())
+                }
                 false => Err(e),
             }
         }
